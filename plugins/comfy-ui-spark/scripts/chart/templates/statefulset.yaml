@@ -1,0 +1,155 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.name }}
+  annotations:
+    juno-innovations.com/workload: "Server"
+spec:
+  serviceName: {{ .Values.name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      runtimeClassName: nvidia
+      # comfy user (uid/gid 1000) needs group-write on the PVC — the image
+      # entrypoint does NOT chown mounted paths (verified upstream)
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        # The mmartial entrypoint validates BOTH mount roots (owner 1000:1000
+        # required, exit 100 on /basedir, exit 101 on /comfy/mnt) — kubelet
+        # creates subPath dirs root-owned and fsGroup only sets the group
+        # (0:1000). Root chown here fixes both pre-start. mkdir -p is
+        # load-bearing: kubelet materializes subPath dirs lazily per-container,
+        # the init mounts the root only, so a fresh PVC has no run/ or user/
+        # yet and chown -R would ENOENT-kill the && chain. /basedir chown is
+        # NON-recursive (models cache never touched); -R is bounded to the
+        # run/ venv subtree + user/ (configs/workflows). Also seeds
+        # user/__manager/config.ini with the Manager security policy keys:
+        # network_mode = personal_cloud is REQUIRED for model downloads (the
+        # default public is denied), security_level = weak for parity with the
+        # SECURITY_LEVEL env (mmartial only applies it via the config file).
+        # Rewritten every boot — locked config, Manager UI changes clobbered.
+        # All THREE keys are required: the image entrypoint greps
+        # security_level / use_uv / network_mode after patching — a missing
+        # line kills the boot pre-patch (observed: 2-key seed → exit 1).
+        # Contract detail in AGENTS.md.
+        - name: chown-volumes
+          image: busybox:1.36
+          command: ["sh", "-c", "mkdir -p /basedir/run /basedir/user/__manager && chown 1000:1000 /basedir && printf '[default]\nsecurity_level = weak\nuse_uv = true\nnetwork_mode = personal_cloud\n' > /basedir/user/__manager/config.ini && chown -R 1000:1000 /basedir/run /basedir/user"]
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 10m
+              memory: 16Mi
+          volumeMounts:
+            - name: models
+              mountPath: /basedir
+      containers:
+        - name: comfy
+          image: {{ .Values.image }}
+          imagePullPolicy: IfNotPresent
+          # No command override: the image entrypoint provisions the venv on
+          # first boot, then runs ComfyUI on :8188
+          env:
+            - name: WANTED_UID
+              value: "1000"
+            - name: WANTED_GID
+              value: "1000"
+            - name: BASE_DIRECTORY
+              value: /basedir
+            - name: SECURITY_LEVEL
+              value: {{ .Values.security_level | quote }}
+            - name: USE_UV
+              value: "true"
+            # Appended to the entrypoint launch command (ComfyUI-Manager's
+            # --enable-manager-legacy-ui flag — legacy Manager UI in sidebar)
+            - name: COMFY_CMDLINE_EXTRA
+              value: "--enable-manager-legacy-ui"
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+            - name: HF_HUB_DISABLE_TELEMETRY
+              value: "true"
+            - name: NCCL_P2P_DISABLE
+              value: "1"
+          ports:
+            - name: http
+              containerPort: {{ .Values.app_port }}
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /system_stats
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 240
+          readinessProbe:
+            httpGet:
+              path: /system_stats
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /system_stats
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: {{ .Values.cpu | quote }}
+              memory: {{ .Values.memory | quote }}
+            # Platform contract (scaffold workstation.yaml): limits come ONLY
+            # from cpuLimit/memoryLimit when set — empty (""/null) = no limit.
+            # comfy is Burstable by default; a runaway render can push the
+            # node toward memory pressure (~117.5Gi allocatable) — the price
+            # of uncapped renders (user decision).
+            limits:
+              nvidia.com/gpu: "1"
+              {{- if .Values.cpuLimit }}
+              cpu: {{ .Values.cpuLimit | quote }}
+              {{- end }}
+              {{- if .Values.memoryLimit }}
+              memory: {{ .Values.memoryLimit | quote }}
+              {{- end }}
+          volumeMounts:
+            - name: models
+              mountPath: /basedir
+            - name: models
+              subPath: run
+              mountPath: /comfy/mnt
+        - name: nginx
+          image: nginx:alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: nginx
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: {{ .Values.name }}-models
+        - name: nginx-config
+          configMap:
+            name: {{ .Values.name }}-nginx-config

@@ -1,0 +1,11 @@
+resource_id: comfy-ui-spark
+name: ComfyUI (Spark)
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/comfy-ui-spark/assets/logo.png
+description: Node-graph AI image generation (SDXL / Flux) on the DGX Spark — GPU-exclusive workload, DGX-native container, models managed via the UI.
+category: AI
+tags:
+  - webui
+  - image
+  - spark
+  - cluster-level
+fields: []

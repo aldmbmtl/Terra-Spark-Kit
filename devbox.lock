@@ -1,0 +1,296 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "docker@latest": {
+      "last_modified": "2026-08-05T07:53:23Z",
+      "resolved": "github:NixOS/nixpkgs/3a971fa2e67dcb0f2f2cfed2d37e7956567d73d1#docker",
+      "source": "devbox-search",
+      "version": "29.6.2",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/fvgl77vkhcm5jhpisyn3aq2113ihghzq-docker-29.6.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/fvgl77vkhcm5jhpisyn3aq2113ihghzq-docker-29.6.2"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/dxbc4wis2wynaj4ad9bxkwxz7m1qv9hw-docker-29.6.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/dxbc4wis2wynaj4ad9bxkwxz7m1qv9hw-docker-29.6.2"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/60mrgyidm492gk5dix8hhjkps3ani83c-docker-29.6.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/60mrgyidm492gk5dix8hhjkps3ani83c-docker-29.6.2"
+        }
+      }
+    },
+    "github:NixOS/nixpkgs/nixpkgs-unstable": {
+      "last_modified": "2026-08-06T00:10:29Z",
+      "resolved": "github:NixOS/nixpkgs/70ce234312134a463ba7728e94da2486a1d237ac?lastModified=1785975029&narHash=sha256-X44cn5rzytELc3NNoQsh0aLkjWA%2FQzPfc6HPQmsG3sU%3D"
+    },
+    "gnumake@latest": {
+      "last_modified": "2026-08-07T10:21:50Z",
+      "resolved": "github:NixOS/nixpkgs/afb4584a80bbf779ce0f691509ff902d188c2b3d#gnumake",
+      "source": "devbox-search",
+      "version": "4.4.1",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/rhw2r5z1rbp9msj03kf8i4rq1hygnm0f-gnumake-4.4.1",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/av26gjivcsjdhq68pg6wb1l9f0ixakbv-gnumake-4.4.1-man",
+              "default": true
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/qpb2zaah86v6z1b0f40y90m6kf42hy3i-gnumake-4.4.1-doc"
+            },
+            {
+              "name": "info",
+              "path": "/nix/store/dw5r16j2bsfpznbnzk3bbgxi3czy0rvn-gnumake-4.4.1-info"
+            }
+          ],
+          "store_path": "/nix/store/rhw2r5z1rbp9msj03kf8i4rq1hygnm0f-gnumake-4.4.1"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/wadg45zgfyi9a4dcm5fy3qvlas76cr2z-gnumake-4.4.1",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/fa0k4ps7a35yxf902shfzz8gmd8a9x2g-gnumake-4.4.1-man",
+              "default": true
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/ffz5ypa2rwi78c6c9syncnpwhhdhaqr1-gnumake-4.4.1-doc"
+            },
+            {
+              "name": "info",
+              "path": "/nix/store/kj5yr5dpvzij2x83ig9y0bp3dbvgsyic-gnumake-4.4.1-info"
+            },
+            {
+              "name": "debug",
+              "path": "/nix/store/fc4qn0vswxpj2qmprk0p0nvill18z7hb-gnumake-4.4.1-debug"
+            }
+          ],
+          "store_path": "/nix/store/wadg45zgfyi9a4dcm5fy3qvlas76cr2z-gnumake-4.4.1"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/0bg5b97b9hbhz8907bfcrch1i116xppa-gnumake-4.4.1",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/wb4yn3d7vmi1hr4f8pz38rjvcl7f70ma-gnumake-4.4.1-man",
+              "default": true
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/3b9cjf16jx4ncpp3b4k6m8q01nxsrw1n-gnumake-4.4.1-doc"
+            },
+            {
+              "name": "info",
+              "path": "/nix/store/rriz5p4q8a6sca7sw3p3js1m5dl09ia8-gnumake-4.4.1-info"
+            }
+          ],
+          "store_path": "/nix/store/0bg5b97b9hbhz8907bfcrch1i116xppa-gnumake-4.4.1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/r60jpv4jr5h50f0rj1k5adlwic2vgldn-gnumake-4.4.1",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/8ayxbdiddzn28damz1f9gb0asx1j409b-gnumake-4.4.1-man",
+              "default": true
+            },
+            {
+              "name": "debug",
+              "path": "/nix/store/1a2srjw3r7sif10sh4zl3k0zin0f09xm-gnumake-4.4.1-debug"
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/15y7ym18qm8dk03b7fnpc9bvccccm33q-gnumake-4.4.1-doc"
+            },
+            {
+              "name": "info",
+              "path": "/nix/store/p18m4dcs9wylvddhprcczaaqqns2sb1d-gnumake-4.4.1-info"
+            }
+          ],
+          "store_path": "/nix/store/r60jpv4jr5h50f0rj1k5adlwic2vgldn-gnumake-4.4.1"
+        }
+      }
+    },
+    "kind@latest": {
+      "last_modified": "2026-08-01T16:34:20Z",
+      "resolved": "github:NixOS/nixpkgs/a5cbcfe954791221bfffe2307f7d1a1bf61a871e#kind",
+      "source": "devbox-search",
+      "version": "0.32.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/pakfccnzsq6c31h5l4145jpidp32ggxg-kind-0.32.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/pakfccnzsq6c31h5l4145jpidp32ggxg-kind-0.32.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/h6a1hnw4cwpzadc5xc60i7bb1d9xwi68-kind-0.32.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/h6a1hnw4cwpzadc5xc60i7bb1d9xwi68-kind-0.32.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/dz74fjdwyfrmsd48fx96g53zsk0x63p2-kind-0.32.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/dz74fjdwyfrmsd48fx96g53zsk0x63p2-kind-0.32.0"
+        }
+      }
+    },
+    "kubectl@latest": {
+      "last_modified": "2026-08-01T16:34:20Z",
+      "resolved": "github:NixOS/nixpkgs/a5cbcfe954791221bfffe2307f7d1a1bf61a871e#kubectl",
+      "source": "devbox-search",
+      "version": "1.36.3",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/3qb9nx5p60da5mxgpqykdgmr5yy63b25-kubectl-1.36.3",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/d5nh9pwixcm9672rhqwy655k9i2a26lp-kubectl-1.36.3-man",
+              "default": true
+            },
+            {
+              "name": "convert",
+              "path": "/nix/store/yzb59f5y4qhra438w2lma11svrl58j9w-kubectl-1.36.3-convert"
+            }
+          ],
+          "store_path": "/nix/store/3qb9nx5p60da5mxgpqykdgmr5yy63b25-kubectl-1.36.3"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/hrvl2jwvk4n983cm0pznqqq1wngkz5wi-kubectl-1.36.3",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/c2pj3axay86cxhmi9fmxd5g0rm7cpxb9-kubectl-1.36.3-man",
+              "default": true
+            },
+            {
+              "name": "convert",
+              "path": "/nix/store/mj3q2rip56ykf0amhi5qldmpzmcwhl7s-kubectl-1.36.3-convert"
+            }
+          ],
+          "store_path": "/nix/store/hrvl2jwvk4n983cm0pznqqq1wngkz5wi-kubectl-1.36.3"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/gr13vsi0xrrw3y6fpyrk2kgmkidpqrm9-kubectl-1.36.3",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/1yn762n6qnzpbrvmrz4qh1fd3gphg78z-kubectl-1.36.3-man",
+              "default": true
+            },
+            {
+              "name": "convert",
+              "path": "/nix/store/xm69shzq95d044c87296rjfsq6a9fi3d-kubectl-1.36.3-convert"
+            }
+          ],
+          "store_path": "/nix/store/gr13vsi0xrrw3y6fpyrk2kgmkidpqrm9-kubectl-1.36.3"
+        }
+      }
+    },
+    "kubernetes-helm@latest": {
+      "last_modified": "2026-08-01T16:34:20Z",
+      "resolved": "github:NixOS/nixpkgs/a5cbcfe954791221bfffe2307f7d1a1bf61a871e#kubernetes-helm",
+      "source": "devbox-search",
+      "version": "4.2.3",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/zxlrdn6fsss4s2i496np7kdrwy92261j-kubernetes-helm-4.2.3",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/zxlrdn6fsss4s2i496np7kdrwy92261j-kubernetes-helm-4.2.3"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/3m7a0rmsr6k5hs0xl2ym6kiv4iqgwypj-kubernetes-helm-4.2.3",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/3m7a0rmsr6k5hs0xl2ym6kiv4iqgwypj-kubernetes-helm-4.2.3"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/wkb6xckn077grj4jqb6z6wgmwzj7g1xr-kubernetes-helm-4.2.3",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/wkb6xckn077grj4jqb6z6wgmwzj7g1xr-kubernetes-helm-4.2.3"
+        }
+      }
+    }
+  }
+}

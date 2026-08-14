@@ -1,0 +1,11 @@
+resource_id: open-webui-spark
+name: Open WebUI (Spark)
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/open-webui-spark/assets/logo.png
+description: Self-hosted chat UI (Open WebUI) pointed at any kit vLLM model workload — CPU-only companion, co-schedules with one model.
+category: AI
+tags:
+  - webui
+  - chat
+  - spark
+  - cluster-level
+fields: []

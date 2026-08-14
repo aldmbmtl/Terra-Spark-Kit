@@ -1,0 +1,12 @@
+resource_id: nemotron-nano-spark
+name: Nemotron 3 Nano (Spark)
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/nemotron-nano-spark/assets/logo.png
+description: Pre-configured NVIDIA Nemotron 3 Nano 30B-A3B (NVFP4 QAD) on plain vLLM — official NVIDIA Spark playbook model, tuned for the DGX Spark.
+category: AI
+tags:
+  - llm
+  - inference
+  - nemotron
+  - spark
+  - cluster-level
+fields: []

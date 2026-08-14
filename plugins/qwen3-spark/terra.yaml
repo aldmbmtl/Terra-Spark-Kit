@@ -1,0 +1,12 @@
+resource_id: qwen3-spark
+name: Qwen3 30B-A3B (Spark)
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/qwen3-spark/assets/logo.png
+description: Pre-configured Qwen3-30B-A3B-Instruct-2507 (BF16) on plain vLLM — the most widely used open LLM family, tuned for the DGX Spark.
+category: AI
+tags:
+  - llm
+  - inference
+  - qwen
+  - spark
+  - cluster-level
+fields: []

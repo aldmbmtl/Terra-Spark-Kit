@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-terra-metadata
+  labels:
+    kuiper.juno-innovations.com/chart: "{{ .Release.Name }}-scripts-configmap"
+  annotations:
+    juno-innovations.com/workload: "Server"
+data:
+  chart: "{{ .Release.Name }}-scripts-configmap"
+  description: "Open WebUI chat frontend — point it at any kit vLLM model workload via llm_url. CPU-only companion: co-schedules with one model."
+  fields: |
+    - name: icon
+      description: "Icon shown for the workload"
+      type: string
+      required: false
+      default: "https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/open-webui-spark/assets/logo.png"
+    - name: cpu
+      description: "CPU cores for the Open WebUI container (request only; limits from cpuLimit/memoryLimit, empty = no limit)."
+      type: string
+      required: false
+      default: "1"
+    - name: memory
+      description: "Memory request (4Gi ample for the frontend; raise for large chat history). Limits from cpuLimit/memoryLimit, empty = no limit."
+      type: string
+      required: false
+      default: "4Gi"
+    - name: llm_url
+      description: "OpenAI-compatible base URL of a launched kit model workload, e.g. http://<model-workload-name>:8080/plugin/<model-workload-name>/v1 (the model sidecar's rewrite strips /plugin/<name>; /v1 reaches vLLM — a bare `/v1` path (no `/plugin/<name>` prefix) 404s). Launch a model workload first, then enter its name here."
+      type: string
+      required: false
+    - name: llm_api_key
+      description: "Optional API key the model endpoint requires (kit model workloads do not require one; leave empty)."
+      type: string
+      required: false
+      sensitive: true
+    - name: publicAccess
+      description: "Expose without Hubble auth. App auth is DISABLED (WEBUI_AUTH=false, Hubble-only) — keep false."
+      type: boolean
+      required: false
+      default: false
+    - name: storage_class
+      description: "StorageClass for the chat-history volume (SQLite)."
+      type: k8sStorageClass
+      required: true
+    - name: storage_size
+      description: "Chat-history volume size in Gi."
+      type: int
+      required: false
+      default: 10

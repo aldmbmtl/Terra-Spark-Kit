@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}-app-bootstrap
+data:
+  app-bootstrap.sh: |
+    #!/bin/sh
+    # txt2kg app bootstrap: fetch pinned playbook source, pnpm install + build (once), serve.
+    # node_modules + .next persist on the data PVC (workspace subPath).
+    # POSIX sh only — node:alpine ships busybox, not bash.
+    set -e
+
+    # git is not guaranteed in slim/alpine node images — install if missing
+    command -v git >/dev/null 2>&1 || apk add --no-cache git
+    # pnpm CLI is a global install — ephemeral per pod, reinstall every boot
+    npm install -q -g pnpm
+
+    APP_DIR=/workspace/frontend
+
+    if [ ! -d "${APP_DIR}/node_modules" ]; then
+      echo "[txt2kg] fetching playbook source @ ${TXT2KG_COMMIT}..."
+      rm -rf /workspace/playbooks
+      git init -q /workspace/playbooks
+      cd /workspace/playbooks
+      git remote add origin https://github.com/NVIDIA/dgx-spark-playbooks.git
+      git fetch -q --depth 1 origin ${TXT2KG_COMMIT}
+      git checkout -q FETCH_HEAD
+      mkdir -p /workspace
+      cp -r /workspace/playbooks/nvidia/txt2kg/assets/frontend ${APP_DIR}
+      rm -rf /workspace/playbooks
+      cd ${APP_DIR}
+      echo "[txt2kg] pnpm install..."
+      pnpm install --no-optional --no-frozen-lockfile --silent
+    else
+      cd ${APP_DIR}
+    fi
+
+    # Rebuild when: no prior build, or the prefix/build-version changed
+    # (next.config basePath + /api literals are baked at build time).
+    NEED_BUILD=0
+    [ ! -f .next/BUILD_ID ] && NEED_BUILD=1
+    [ "$(cat /workspace/.basepath 2>/dev/null)" != "${APP_BASE_PATH}|${BUILD_VER}" ] && NEED_BUILD=1
+
+    if [ "$NEED_BUILD" = "1" ]; then
+      echo "[txt2kg] patching basePath + API routes for ${APP_BASE_PATH}..."
+      APP_BASE_PATH="${APP_BASE_PATH}" node - <<'JS'
+    const fs = require('fs');
+    const path = require('path');
+    const base = process.env.APP_BASE_PATH || '';
+
+    // 1. next.config.mjs: add basePath (evaluated at build time)
+    const cfg = '/workspace/frontend/next.config.mjs';
+    let s = fs.readFileSync(cfg, 'utf8');
+    if (!s.includes('basePath')) {
+      s = s.replace(
+        'const nextConfig = {',
+        "const nextConfig = {\n  basePath: process.env.APP_BASE_PATH || '',",
+        1
+      );
+      fs.writeFileSync(cfg, s);
+    }
+
+    // 2. Every string literal starting with /api or /graph3d stays
+    //    root-absolute under basePath — bake the prefix in. Covers fetch(),
+    //    axios, variable-assigned endpoints, server-side proxy URLs, iframe
+    //    srcs and raw location.href navigations alike. Idempotent: prefixed
+    //    literals have a non-quote char before the bare prefix. (Next
+    //    Link/router auto-prefix; these raw forms do not.)
+    if (base) {
+      const walk = (dir) => {
+        for (const f of fs.readdirSync(dir)) {
+          const p = path.join(dir, f);
+          if (fs.statSync(p).isDirectory()) {
+            if (f === 'node_modules' || f === '.next') continue;
+            walk(p);
+          } else if (/\.[jt]sx?$|\.mjs$/.test(f)) {
+            let t = fs.readFileSync(p, 'utf8');
+            const orig = t;
+            for (const q of ["'", '"', '`']) {
+              for (const prefix of ['/api', '/graph3d']) {
+                t = t.split(q + prefix).join(q + base + prefix);
+              }
+            }
+            // 3. Self-calls via template interpolation (req.nextUrl.origin +
+            //    '/api/...') — /api is preceded by '}', not a quote. Only the
+            //    app's own origin qualifies; external service URLs (remote
+            //    GPU, unified-gpu, ollama) must stay unprefixed.
+            t = t.split('${req.nextUrl.origin}/api/').join('${req.nextUrl.origin}' + base + '/api/');
+            // 4. graph3d page's home button navigates to root '/' — raw
+            //    location.href, needs the prefix (Link/router would auto-add).
+            if (p.endsWith('app/graph3d/page.tsx')) {
+              t = t.split("location.href = '/'").join("location.href = '" + base + "/'");
+            }
+            // 5. llm-service.ts: the vLLM OpenAI client gets an http.Agent —
+            //    breaks https baseURLs ("Protocol https: not supported").
+            //    Playbook assumed in-cluster http://vllm:8001; kit llm_url may
+            //    be the https public ingress. HttpsAgent is already imported
+            //    and handles both schemes.
+            if (p.endsWith('lib/llm-service.ts')) {
+              t = t.split('const vllmHttpAgent = new Agent(').join('const vllmHttpAgent = new HttpsAgent(');
+            }
+            if (t !== orig) {
+              fs.writeFileSync(p, t);
+              console.log('[txt2kg]   patched', p.replace('/workspace/frontend/', ''));
+            }
+          }
+        }
+      };
+      walk('/workspace/frontend');
+    }
+    JS
+      echo "[txt2kg] next build..."
+      APP_BASE_PATH="${APP_BASE_PATH}" pnpm build
+      echo "${APP_BASE_PATH}|${BUILD_VER}" > /workspace/.basepath
+    fi
+
+    echo "[txt2kg] starting Next.js on :${APP_PORT}"
+    export NODE_ENV=production
+    exec pnpm start -p ${APP_PORT}

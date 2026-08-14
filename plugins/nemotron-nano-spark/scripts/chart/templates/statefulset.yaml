@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.name }}
+  annotations:
+    juno-innovations.com/workload: "Server"
+spec:
+  serviceName: {{ .Values.name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      runtimeClassName: {{ .Values.runtimeClassName }}
+      containers:
+        - name: vllm
+          image: {{ .Values.image }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VLLM_ATTENTION_BACKEND
+              value: FLASHINFER
+            - name: HF_HOME
+              value: /models
+            {{- if .Values.hf_token }}
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.name }}-hf-token
+                  key: HF_TOKEN
+            {{- end }}
+          args:
+            - --model
+            - {{ .Values.model }}
+            - --served-model-name
+            - {{ .Values.served_model_name | quote }}
+            - --kv-cache-dtype
+            - fp8
+            - --enable-prefix-caching
+            - --trust-remote-code
+            - --enable-auto-tool-choice
+            - --tool-call-parser
+            - qwen3_coder
+            - --reasoning-parser
+            - deepseek_r1
+            - --gpu-memory-utilization
+            - {{ .Values.gpu_memory_utilization | quote }}
+            - --max-model-len
+            - {{ .Values.max_model_len | default 131072 | quote }}
+            - --max-num-seqs
+            - {{ .Values.max_num_seqs | default 4 | quote }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /v1/models
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: {{ .Values.cpu | quote }}
+              memory: {{ .Values.memory | quote }}
+            limits:
+              cpu: {{ .Values.cpu | quote }}
+              nvidia.com/gpu: "1"
+              memory: {{ .Values.memory | quote }}
+          volumeMounts:
+            - name: models
+              mountPath: /models
+        - name: nginx
+          image: nginx:alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: nginx
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: {{ .Values.name }}-models
+        - name: nginx-config
+          configMap:
+            name: {{ .Values.name }}-nginx-config

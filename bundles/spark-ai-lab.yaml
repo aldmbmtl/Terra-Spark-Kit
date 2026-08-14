@@ -1,0 +1,19 @@
+resource_id: spark-ai-lab
+name: Spark AI Lab
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/bundles/assets/spark-icon.png
+description: Companion workloads for the DGX Spark — Open WebUI chat frontend, ComfyUI image generation, and txt2kg knowledge-graph app. Pair any of them with a model workload from the Spark LLM Stack bundle (llm_url fields point at the launched model).
+category: Bundle
+tags:
+  - spark
+  - webui
+  - image
+  - knowledge-graph
+  - cluster-level
+fields: []
+plugins:
+  - plugin: Open WebUI (Spark)
+    name: open-webui-spark
+  - plugin: ComfyUI (Spark)
+    name: comfy-ui-spark
+  - plugin: txt2kg (Spark)
+    name: txt2kg-spark

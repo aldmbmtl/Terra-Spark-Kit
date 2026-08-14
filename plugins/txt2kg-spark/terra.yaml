@@ -1,0 +1,11 @@
+resource_id: txt2kg-spark
+name: txt2kg (Spark)
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/txt2kg-spark/assets/logo.png
+description: Text-to-knowledge-graph web app (Next.js + ArangoDB) backed by any kit vLLM model workload — CPU-only companion.
+category: AI
+tags:
+  - webui
+  - knowledge-graph
+  - spark
+  - cluster-level
+fields: []

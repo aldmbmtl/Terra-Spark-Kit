@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-pv-volume
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/apps/data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-pv-claim
+spec:
+  volumeName: data-pv-volume
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

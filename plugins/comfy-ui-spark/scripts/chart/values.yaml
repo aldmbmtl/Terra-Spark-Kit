@@ -1,0 +1,35 @@
+# Kuiper-injected standard values — do not remove
+name: comfy-ui-spark
+icon: "https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/comfy-ui-spark/assets/logo.png"
+user:
+group:
+cpu: "2"
+memory: "48Gi"
+cpuLimit: null
+memoryLimit: null
+idx: 0
+guid: 0
+puid: 0
+host:
+pullSecret:
+session:
+volumeMounts: []
+volumes: []
+env:
+  - name: JUNO
+    value: "true"
+selector:
+plugins: []
+_kuiper:
+
+# --- ComfyUI pre-configuration (locked) ---
+# DGX-native arm64 build (mmartial/ComfyUI-Nvidia-Docker): Docker Hub anonymous
+# pull, ubuntu24 + cuda13.1 + torch 2.10 (sm_121), non-root comfy user.
+image: "mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx-latest"
+app_port: 8188
+security_level: "weak"
+
+# --- Exposed fields (match metadata.yaml) ---
+publicAccess: false
+storage_class: ""
+storage_size: 100

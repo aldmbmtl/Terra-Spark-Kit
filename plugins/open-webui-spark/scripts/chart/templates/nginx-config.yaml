@@ -1,0 +1,184 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}-nginx-config
+data:
+  default.conf: |
+    map $http_upgrade $connection_upgrade {
+      default upgrade;
+      ''      close;
+    }
+    server {
+      listen 8080;
+      # Uploads (docs/images) — the ingress proxy-body-size alone doesn't fix
+      # them: the sidecar's default 1m cap would 413 after it.
+      client_max_body_size 256m;
+      # Common proxy settings — hoisted so ALL locations inherit (nginx
+      # locations don't inherit from each other). Settings only — NO rewrites
+      # here: a server-context rewrite runs before location selection and
+      # would kill the ^~ / regex location matching below.
+      proxy_http_version 1.1;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_connect_timeout 600s;
+      proxy_read_timeout 600s;
+      proxy_send_timeout 600s;
+
+      # socket.io — WebSocket upgrade, unbuffered. ^~ shields it from any
+      # future regex locations. The plain rewrite strip is safe here: Open
+      # WebUI URLs carry no %2F/embedded-filename paths (UUID ids, not
+      # names) — the ComfyUI#9664 class doesn't apply.
+      location ^~ /plugin/{{ .Values.name }}/ws/ {
+        rewrite ^/plugin/{{ .Values.name }}(/|$)(.*)$ /$2 break;
+        proxy_pass http://127.0.0.1:{{ .Values.app_port }};
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_buffering off;
+      }
+
+      # SSE streaming (chat completions + RAG retrieval, both /api and
+      # /api/v1 forms) — must not be buffered or sub_filter'd.
+      location ~ ^/plugin/{{ .Values.name }}/api/(v1/)?(chat/completions|retrieval/process)$ {
+        rewrite ^/plugin/{{ .Values.name }}(/|$)(.*)$ /$2 break;
+        proxy_pass http://127.0.0.1:{{ .Values.app_port }};
+        proxy_buffering off;
+      }
+
+      # manifest.json is JSON — excluded from sub_filter_types to protect
+      # stored chat content; a dedicated exact-match location scopes JSON
+      # rewriting to this one file (icon src + start_url).
+      location = /plugin/{{ .Values.name }}/manifest.json {
+        rewrite ^/plugin/{{ .Values.name }}(/|$)(.*)$ /$2 break;
+        proxy_pass http://127.0.0.1:{{ .Values.app_port }};
+        proxy_set_header Accept-Encoding "";
+        proxy_buffering on;
+        sub_filter_once off;
+        sub_filter_types application/json;
+        sub_filter '"/static/' '"/plugin/{{ .Values.name }}/static/';
+        sub_filter '"start_url":"/"' '"start_url":"/plugin/{{ .Values.name }}/"';
+      }
+
+      # Default — BUFFERED + sub_filter. Open WebUI has NO native subpath
+      # support (upstream PRs unmerged): the stock build emits root-absolute
+      # URLs (/api/*, /auth, /_app/*, /static/*, /ws/*), so the frontend
+      # content must be rewritten to the prefix. sub_filter needs identity
+      # encoding (Accept-Encoding "") and buffered responses.
+      location /plugin/{{ .Values.name }} {
+        rewrite ^/plugin/{{ .Values.name }}(/|$)(.*)$ /$2 break;
+        proxy_pass http://127.0.0.1:{{ .Values.app_port }};
+        proxy_set_header Accept-Encoding "";
+        proxy_buffering on;
+        sub_filter_once off;
+        # html/js/css only — NOT application/json (rewriting JSON corrupts
+        # stored chat content containing literal /api/ strings)
+        sub_filter_types text/html application/javascript text/javascript text/css;
+        sub_filter '"/api/' '"/plugin/{{ .Values.name }}/api/';
+        sub_filter "'/api/" "'/plugin/{{ .Values.name }}/api/";
+        # NO /auth needles: they corrupt the baked SvelteKit route manifest
+        # (route id "/auth" → "/plugin/<name>/auth", which the router can
+        # never match after stripping base). WEBUI_AUTH=false kills the auth
+        # flow anyway; the base rewrite covers router navigations.
+        sub_filter '"/_app/' '"/plugin/{{ .Values.name }}/_app/';
+        sub_filter "'/_app/" "'/plugin/{{ .Values.name }}/_app/";
+        sub_filter '"/static/' '"/plugin/{{ .Values.name }}/static/';
+        sub_filter "'/static/" "'/plugin/{{ .Values.name }}/static/";
+        sub_filter '"/ws/' '"/plugin/{{ .Values.name }}/ws/';
+        sub_filter "'/ws/" "'/plugin/{{ .Values.name }}/ws/";
+        # SvelteKit builds many URLs as template literals with base variables
+        # (`` `${rn}/_app/version.json` ``, `` `${p}/api/config` `` — the vars
+        # are runtime-empty). The `}` before /path is stable and rewritable;
+        # quote-needles can't see through the variable. Idempotent: once
+        # rewritten, `}` is followed by /plugin/ and no longer matches.
+        sub_filter '"/manifest.json' '"/plugin/{{ .Values.name }}/manifest.json';
+        sub_filter '}/_app/' '}/plugin/{{ .Values.name }}/_app/';
+        sub_filter '}/api/' '}/plugin/{{ .Values.name }}/api/';
+        # the ${p}/api construction (no trailing slash — e.g. the chat
+        # completions API base) is missed by the }/api/ needle above
+        sub_filter '}/api' '}/plugin/{{ .Values.name }}/api';
+        sub_filter '}/static/' '}/plugin/{{ .Values.name }}/static/';
+        sub_filter '}/ws/' '}/plugin/{{ .Values.name }}/ws/';
+        sub_filter 'url(/static/' 'url(/plugin/{{ .Values.name }}/static/';
+        # THE subpath fix: SvelteKit bakes `base` at build ('' in stock builds);
+        # the inline hydration script sets `__sveltekit_n2lct2 = { base: "" }`
+        # at runtime — the router uses it to resolve routes against
+        # location.pathname, so an empty base renders the app's own 404 under
+        # the prefix. Rewriting the plain-string base makes every route match
+        # under /plugin/<name> (and all `${base}/...` constructions). Exact
+        # spacing `base: ""` is specific to the inline script — chunk builds
+        # use minified forms, no false positives. Idempotent.
+        sub_filter 'base: ""' 'base: "/plugin/{{ .Values.name }}"';
+        # THE navigation fix: SvelteKit's goto resolves the target against
+        # document.baseURI (get_base_uri, compiled `new URL(e,t)`) — URL
+        # semantics make root-absolute paths override the document path, so
+        # EVERY goto('/...') went bare (new chat, settings, admin, /c/<id>...).
+        # ONE one-shot needle transforms the RAW chunk straight to the final
+        # form: strip the leading slash (relative → prefixed), with an
+        # indexOf("/plugin/") guard for already-prefixed paths, resolving
+        # against the PREFIX ROOT (location.origin+U) — page-depth
+        # independent (subpage navigation can't double-prefix). External
+        # http(s) URLs (e[0] != '/') pass unchanged. NOTE: nginx sub_filter
+        # rules do NOT chain — each matches the raw body — so chained needles
+        # would never fire (v3-needle-on-v2-output bug).
+        sub_filter 'new URL(e,t)}function q()' 'new URL(e.indexOf("/plugin/")===0?e:e[0]==="/"?e.slice(1):e,location.origin+U+"/")}function q()';
+        # Placeholder fallback image (safeImageUrl.ts) — root-absolute literal
+        sub_filter "'/favicon.png" "'/plugin/{{ .Values.name }}/favicon.png";
+        sub_filter '"/favicon.png' '"/plugin/{{ .Values.name }}/favicon.png';
+        # Browser-navigation sites (error page / forward-auth / account flows)
+        # — location.href bypasses the router entirely; manifest-safe via the
+        # location.href= anchor
+        sub_filter 'location.href="/"' 'location.href="/plugin/{{ .Values.name }}/"';
+        # signout/session-expiry fallback (UserMenu/AccountPending) — the
+        # ??"/auth" context never matches the baked route id
+        sub_filter '??"/auth"' '??"/plugin/{{ .Values.name }}/auth"';
+        # Sidebar anchors — literal HTML strings in the compiled layout chunk
+        # (`<a href="/workspace"`). Native browser navigation (no goto/Ge —
+        # the click-interceptor only catches /c/, /channels/, /notes/-with-
+        # slash). The href= anchor is manifest-safe (route ids are
+        # /(app)/...-qualified and lack the href= prefix); idempotent.
+        sub_filter 'href="/"' 'href="/plugin/{{ .Values.name }}/"';
+        sub_filter 'href="/admin"' 'href="/plugin/{{ .Values.name }}/admin"';
+        sub_filter 'href="/automations"' 'href="/plugin/{{ .Values.name }}/automations"';
+        sub_filter 'href="/calendar"' 'href="/plugin/{{ .Values.name }}/calendar"';
+        sub_filter 'href="/notes"' 'href="/plugin/{{ .Values.name }}/notes"';
+        sub_filter 'href="/playground"' 'href="/plugin/{{ .Values.name }}/playground"';
+        sub_filter 'href="/workspace"' 'href="/plugin/{{ .Values.name }}/workspace"';
+        # Root-menu items are DATA-driven (Sidebar.svelte): { href: '/workspace' }
+        # in the items array + the menuItemPathPrefixes map — both compile to
+        # the `:"/path"` COLON form (the equals-form needles above can't match
+        # object properties). One needle per path covers both surfaces;
+        # manifest-safe (route ids are /(app)/...-qualified); idempotent.
+        # Bonus: getActiveMenuItemId compares the prefixed pathname against
+        # these prefixes — prefixed values fix the active-item highlight.
+        sub_filter ':"/workspace"' ':"/plugin/{{ .Values.name }}/workspace"';
+        sub_filter ':"/notes"' ':"/plugin/{{ .Values.name }}/notes"';
+        sub_filter ':"/automations"' ':"/plugin/{{ .Values.name }}/automations"';
+        sub_filter ':"/calendar"' ':"/plugin/{{ .Values.name }}/calendar"';
+        sub_filter ':"/playground"' ':"/plugin/{{ .Values.name }}/playground"';
+        # Dynamic-path prefix family: ALL route ids are /(app)/...-qualified
+        # (e.g. "/(app)/c/[id]", "/(app)/admin/...") — the quote+path prefix
+        # can never match the manifest (round-4 corruption class cannot
+        # recur). One needle per path class covers equals + attr forms.
+        sub_filter '"/admin/' '"/plugin/{{ .Values.name }}/admin/';
+        sub_filter '"/c/' '"/plugin/{{ .Values.name }}/c/';
+        sub_filter '"/channels/' '"/plugin/{{ .Values.name }}/channels/';
+        sub_filter '"/s/' '"/plugin/{{ .Values.name }}/s/';
+        # bare-root write when closing a chat
+        # (window.history.replaceState(...,"","/"))
+        sub_filter ',"","/"' ',"","/plugin/{{ .Values.name }}/"';
+        # BACKTICK-quoted template literals — the chat/channel/share anchors
+        # compile to `et(el,"href",()=>Nt()?\`/s/${id}\`:\`/c/${id}\`)` — the
+        # double-quote needles can't match backticks (the root cause of the
+        # bare /c/<uuid> navigation: ChatItem's stopPropagation starves the
+        # interceptor, the native anchor nav fires). Manifest-safe (route ids
+        # are double-quoted); idempotent (backtick followed by /plugin/ after
+        # rewriting).
+        sub_filter '`/c/' '`/plugin/{{ .Values.name }}/c/';
+        sub_filter '`/channels/' '`/plugin/{{ .Values.name }}/channels/';
+        sub_filter '`/s/' '`/plugin/{{ .Values.name }}/s/';
+        # Backend 302 Location headers — sub_filter can't touch headers
+        proxy_redirect /auth /plugin/{{ .Values.name }}/auth;
+        proxy_redirect /oidc /plugin/{{ .Values.name }}/oidc;
+        proxy_redirect /sso /plugin/{{ .Values.name }}/sso;
+      }
+    }

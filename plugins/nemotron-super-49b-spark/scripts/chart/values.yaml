@@ -1,0 +1,41 @@
+# Kuiper-injected standard values — do not remove
+# Per-model defaults (2 CPU / 88Gi). At launch the metadata field default
+# overrides Kuiper's injected standard value (verified platform behavior).
+name: nemotron-super-49b-spark
+icon: "https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/nemotron-super-49b-spark/assets/logo.png"
+served_model_name: "model"
+user:
+group:
+cpu: "2"
+memory: "88Gi"
+cpuLimit: null
+memoryLimit: null
+idx: 0
+guid: 0
+puid: 0
+host:
+pullSecret:
+session:
+volumeMounts: []
+volumes: []
+env:
+  - name: JUNO
+    value: "true"
+selector:
+plugins: []
+_kuiper:
+
+# --- Llama-3.3-Nemotron-Super-49B pre-configuration (locked) ---
+image: "vllm/vllm-openai:latest"
+# FP8 checkpoint confirmed on HF (repo id uses underscores: Llama-3_3-...-v1_5-FP8, 234K downloads).
+# Fallback if unavailable: BF16 base + dynamic FP8 quant (--quantization fp8, util 0.80)
+model: "nvidia/Llama-3_3-Nemotron-Super-49B-v1_5-FP8"
+runtimeClassName: "nvidia"
+max_model_len: 32768
+max_num_seqs: 4
+
+# --- Exposed fields (match metadata.yaml) ---
+gpu_memory_utilization: "0.65"
+hf_token: ""
+storage_class: ""
+storage_size: 100

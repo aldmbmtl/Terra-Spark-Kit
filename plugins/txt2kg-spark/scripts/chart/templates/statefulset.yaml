@@ -1,0 +1,159 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.name }}
+  annotations:
+    juno-innovations.com/workload: "Server"
+spec:
+  serviceName: {{ .Values.name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      containers:
+        - name: app
+          image: {{ .Values.app_image }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - /scripts/app-bootstrap.sh
+          env:
+            - name: TXT2KG_COMMIT
+              value: {{ .Values.txt2kg_commit | quote }}
+            - name: APP_PORT
+              value: {{ .Values.app_port | quote }}
+            - name: APP_BASE_PATH
+              value: /plugin/{{ .Values.name }}
+            - name: BUILD_VER
+              value: "5"
+            - name: VLLM_BASE_URL
+              value: {{ .Values.llm_url | quote }}
+            - name: VLLM_MODEL
+              value: {{ .Values.llm_model | quote }}
+            - name: GRAPH_DB_TYPE
+              value: arangodb
+            - name: ARANGODB_URL
+              value: http://localhost:8529
+            - name: ARANGODB_DB
+              value: txt2kg
+            - name: OLLAMA_BASE_URL
+              value: http://localhost:11434/v1
+            - name: OLLAMA_MODEL
+              value: disabled
+          ports:
+            - name: http
+              containerPort: {{ .Values.app_port }}
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /plugin/{{ .Values.name }}
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /plugin/{{ .Values.name }}
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /plugin/{{ .Values.name }}
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: {{ .Values.cpu | quote }}
+              memory: {{ .Values.memory | quote }}
+            limits:
+              cpu: {{ .Values.cpu | quote }}
+              memory: {{ .Values.memory | quote }}
+          volumeMounts:
+            - name: data
+              subPath: workspace
+              mountPath: /workspace
+            - name: bootstrap
+              mountPath: /scripts
+        - name: arangodb
+          image: {{ .Values.arangodb_image }}
+          imagePullPolicy: IfNotPresent
+          # ArangoDB + one-shot DB creation in the same container: k8s init containers
+          # run BEFORE main containers, so a separate init cannot reach arangod.
+          command:
+            - sh
+            - -c
+            - |
+              /entrypoint.sh arangod &
+              for i in $(seq 1 60); do
+                if arangosh --server.endpoint tcp://127.0.0.1:8529 --server.authentication false \
+                  --javascript.execute-string '1' >/dev/null 2>&1; then break; fi
+                sleep 2
+              done
+              echo 'Creating txt2kg database...'
+              arangosh --server.endpoint tcp://127.0.0.1:8529 --server.authentication false \
+                --javascript.execute-string 'try { db._createDatabase("txt2kg"); console.log("Database txt2kg created successfully!"); } catch(e) { if(e.message.includes("duplicate")) { console.log("Database txt2kg already exists"); } else { throw e; } }'
+              wait
+          env:
+            - name: ARANGO_NO_AUTH
+              value: "1"
+          ports:
+            - name: arangodb
+              containerPort: 8529
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /_api/version
+              port: arangodb
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: 500m
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              subPath: arangodb
+              mountPath: /var/lib/arangodb3
+            - name: data
+              subPath: arangodb-apps
+              mountPath: /var/lib/arangodb3-apps
+        - name: nginx
+          image: nginx:alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: nginx
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.name }}-data
+        - name: bootstrap
+          configMap:
+            name: {{ .Values.name }}-app-bootstrap
+            defaultMode: 0755
+        - name: nginx-config
+          configMap:
+            name: {{ .Values.name }}-nginx-config

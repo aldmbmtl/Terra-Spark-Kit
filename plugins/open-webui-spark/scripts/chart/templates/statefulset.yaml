@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.name }}
+  annotations:
+    juno-innovations.com/workload: "Server"
+spec:
+  serviceName: {{ .Values.name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      containers:
+        - name: open-webui
+          image: {{ .Values.image }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PORT
+              value: {{ .Values.app_port | quote }}
+            - name: OPENAI_API_BASE_URL
+              value: {{ .Values.llm_url | quote }}
+            {{- if .Values.llm_api_key }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.name }}-llm-key
+                  key: LLM_API_KEY
+            {{- else }}
+            - name: OPENAI_API_KEY
+              value: "none"
+            {{- end }}
+            - name: WEBUI_URL
+              value: "https://{{ .Values.host }}/plugin/{{ .Values.name }}"
+            # App-level auth disabled — Hubble at the ingress is the gate
+            # (single-user DGX; also kills the /auth redirect flow under the
+            # prefix, whose server-side redirect_url is JSON data that
+            # sub_filter can't rewrite)
+            - name: WEBUI_AUTH
+              value: "false"
+          ports:
+            - name: http
+              containerPort: {{ .Values.app_port }}
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: {{ .Values.cpu | quote }}
+              memory: {{ .Values.memory | quote }}
+            # Platform contract (scaffold workstation.yaml): limits come ONLY
+            # from cpuLimit/memoryLimit when set — empty (""/null) = no limit.
+            # Burstable by default; a runaway workload can push the node
+            # toward memory pressure (~117.5Gi allocatable) — cap via
+            # memoryLimit if needed.
+            limits:
+              {{- if .Values.cpuLimit }}
+              cpu: {{ .Values.cpuLimit | quote }}
+              {{- end }}
+              {{- if .Values.memoryLimit }}
+              memory: {{ .Values.memoryLimit | quote }}
+              {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/backend/data
+        - name: nginx
+          image: nginx:alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: nginx
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.name }}-data
+        - name: nginx-config
+          configMap:
+            name: {{ .Values.name }}-nginx-config

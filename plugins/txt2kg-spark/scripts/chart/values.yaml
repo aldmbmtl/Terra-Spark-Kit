@@ -1,0 +1,36 @@
+# Kuiper-injected standard values — do not remove
+name: txt2kg-spark
+icon: "https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/txt2kg-spark/assets/logo.png"
+user:
+group:
+cpu: "2"
+memory: "8Gi"
+cpuLimit: null
+memoryLimit: null
+idx: 0
+guid: 0
+puid: 0
+host:
+pullSecret:
+session:
+volumeMounts: []
+volumes: []
+env:
+  - name: JUNO
+    value: "true"
+selector:
+plugins: []
+_kuiper:
+
+# --- txt2kg pre-configuration (locked) ---
+app_image: "node:20-alpine"
+arangodb_image: "arangodb:3.12"
+txt2kg_commit: "1fb66f059ee427c5a3678b3117ef73aab042b458"
+app_port: 3000
+
+# --- Exposed fields (match metadata.yaml) ---
+llm_url: ""
+llm_model: "model"
+publicAccess: false
+storage_class: ""
+storage_size: 50

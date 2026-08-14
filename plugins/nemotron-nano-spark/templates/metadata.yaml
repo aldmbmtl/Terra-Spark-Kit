@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-terra-metadata
+  labels:
+    kuiper.juno-innovations.com/chart: "{{ .Release.Name }}-scripts-configmap"
+  annotations:
+    juno-innovations.com/workload: "Server"
+data:
+  chart: "{{ .Release.Name }}-scripts-configmap"
+  description: "Nemotron 3 Nano 30B-A3B NVFP4 — pre-configured plain-vLLM server (official NVIDIA Spark playbook model)"
+  fields: |
+    - name: icon
+      description: "Icon shown for the workload"
+      type: string
+      required: false
+      default: "https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/nemotron-nano-spark/assets/logo.png"
+    - name: served_model_name
+      description: "Model name clients send in API requests (the OpenAI-compatible model field). Standardized across all kit workloads — each deployment has its own ingress."
+      type: string
+      required: false
+      default: "model"
+    - name: cpu
+      description: "CPU cores for the vLLM worker (request = limit). Default 2 — heavy prefill may want 4"
+      type: string
+      required: false
+      default: "2"
+    - name: memory
+      description: "Memory request = limit (Guaranteed QoS), footprint-derived (weights + KV pool + overhead). Lowering risks container OOM under load; raising reduces node headroom."
+      type: string
+      required: false
+      default: "48Gi"
+    - name: gpu_memory_utilization
+      description: "Fraction of device memory for weights + KV cache: ~51GB ceiling contains the ~35GB CUDA footprint (17GB NVFP4 + 14GB KV pool at 131K ctx)."
+      type: string
+      required: false
+      default: "0.40"
+    - name: hf_token
+      description: "HuggingFace access token (NVIDIA models require license acceptance; also used for private repos)."
+      type: string
+      required: false
+      sensitive: true
+    - name: storage_class
+      description: "StorageClass for the model cache volume (required)."
+      type: k8sStorageClass
+      required: true
+    - name: storage_size
+      description: "Model cache volume size in Gi."
+      type: int
+      required: false
+      default: 50
