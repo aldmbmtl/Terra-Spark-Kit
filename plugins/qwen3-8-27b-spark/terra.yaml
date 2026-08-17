@@ -1,0 +1,12 @@
+resource_id: qwen3-8-27b-spark
+name: Qwen3.8-27B (Spark)
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/qwen3-6-spark/assets/logo.png
+description: Pre-configured Qwen/Qwen3.8-27B on plain vLLM — latest Qwen3.8 27B model, optimized for the DGX Spark.
+category: AI
+tags:
+  - llm
+  - inference
+  - qwen
+  - spark
+  - cluster-level
+fields: []
