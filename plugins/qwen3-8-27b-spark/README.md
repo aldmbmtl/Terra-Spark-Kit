@@ -38,3 +38,7 @@ before proxying to vLLM (`:8000`).
 - `nvidia-gpu-operator` plugin from the official catalog, driver ≥ 580.
 - First launch downloads the checkpoint into the model volume.
 - **Hardware validation pending** — config transcribed from Qwen/vLLM published guidance.
+
+## Notes
+
+- **FP8 tradeoff for coding**: FP8 quantization halves weight precision (BF16 → FP8), trading accuracy for significantly faster decode. For interactive coding assistance (autocomplete, quick questions, refactoring), the speed gain is worth it. For generating large volumes of production-quality code where correctness matters, BF16 precision is safer — FP8 can introduce subtle errors and weaken multi-step reasoning.
