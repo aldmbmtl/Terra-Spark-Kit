@@ -21,13 +21,13 @@ Plugins use distinct `-spark` resource IDs so they coexist cleanly with their of
 | Open WebUI (Spark) | Workload Template | AI | Chat UI pointed at any kit model workload — CPU-only companion, co-schedules with one model | [README](plugins/open-webui-spark/README.md) |
 | ComfyUI (Spark) | Workload Template | AI | Node-graph image generation (SDXL/Flux) — GPU-exclusive workload, DGX-native container, models managed via the UI | [README](plugins/comfy-ui-spark/README.md) |
 | txt2kg (Spark) | Workload Template | AI | Text-to-knowledge-graph (Next.js + ArangoDB) backed by any kit model workload — CPU-only companion | [README](plugins/txt2kg-spark/README.md) |
-| Qwen3.8-27B (Spark) | Workload Template | AI | Qwen/Qwen3.8-27B — latest 27B model, tuned for the DGX Spark (FP8) | [README](plugins/qwen3-8-27b-spark/README.md) |
+| Qwen3.8-27B (Spark) | Workload Template | AI | Qwen3.8-27B FP8 on plain vLLM, 256K context, 56Gi | [README](plugins/qwen3-8-27b-spark/README.md) |
 
-Bundles: [Spark LLM Stack](bundles/spark-llm.yaml) — all five model workloads in one install ·
+Bundles: [Spark LLM Stack](bundles/spark-llm.yaml) — all six model workloads in one install ·
 [Spark AI Lab](bundles/spark-ai-lab.yaml) — Open WebUI + ComfyUI + txt2kg companions.
 
 Every workload is a plain-vLLM StatefulSet with a footprint-derived unified-memory budget
-(memory request = limit per model: 48Gi Lightning/Nano, 72Gi Qwen3.6, 88Gi Qwen3/Super-49B; util 0.40–0.70),
+(memory request = limit per model: 48Gi Lightning/Nano, 56Gi Qwen3.8-27B, 72Gi Qwen3.6, 88Gi Qwen3/Super-49B; util 0.40–0.70),
 served under the platform `/plugin/<name>` prefix via an in-pod nginx prefix-stripping sidecar.
 
 Three **non-model companion workloads** (Open WebUI, ComfyUI, txt2kg) follow the same ingress rule.

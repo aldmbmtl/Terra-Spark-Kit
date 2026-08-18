@@ -1,9 +1,9 @@
-# qwen3-6-spark
+# qwen3-8-27b-spark
 
-Pre-configured **Qwen/Qwen3.8-27B** (BF16) inference server for the DGX Spark — a plain
-**vLLM** StatefulSet. Qwen3 is the most widely used open LLM family (33.9M+ downloads on Ollama);
-the 30B-A3B MoE activates only 3B parameters per token, making it very fast on the Spark's
-273 GB/s unified memory.
+Pre-configured **Qwen/Qwen3.8-27B** (FP8) inference server for the DGX Spark — a plain
+**vLLM** StatefulSet. Qwen3.8-27B is a hybrid Mamba+Attention model (48 Mamba + 16 attention
+layers) with 256K context, optimized for the Spark's unified memory with FP8 weight
+quantization.
 
 ## Configuration (locked)
 
@@ -11,30 +11,30 @@ the 30B-A3B MoE activates only 3B parameters per token, making it very fast on t
 |---------|-------|
 | Model | `Qwen/Qwen3.8-27B` (Apache-2.0) |
 | Image | `vllm/vllm-openai:latest` |
-| Engine flags | KV cache fp8 · prefix caching · reasoning (`deepseek_r1` parser) · auto-tool-choice (hermes parser) |
-| Context | 131072 tokens (locked; model supports 262144) |
-| Concurrency | 2 sequences (locked) |
+| Quantization | FP8 (native Blackwell tensor cores, ~29GB weights) |
+| Engine flags | KV cache fp8 · prefix caching · reasoning (`qwen3` parser) · auto-tool-choice (`qwen3_coder` parser) |
+| Context | 262144 tokens (locked) |
+| Concurrency | 4 sequences (locked) |
 | GPU | 1 × `nvidia.com/gpu`, runtime class `nvidia` |
-| Memory limit | 72Gi (container OOM, never host) — footprint ~64GB (35GB FP8 + 21.5GB KV + overhead) |
+| Memory limit | 56Gi (Guaranteed QoS, ~50Gi footprint) |
+| GPU util | 0.40 (~47GB CUDA ceiling) |
 
 Ingress: `/plugin/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
 before proxying to vLLM (`:8000`).
 
 ## Fields
 
-- `gpu_memory_utilization` (default `0.55` — ~70GB ceiling vs ~61GB CUDA footprint).
+- `gpu_memory_utilization` (default `0.40` — ~47GB ceiling, ~32GB consumed).
 - `served_model_name` (default `model`) — the model string clients send in API requests
   (the OpenAI-compatible `model` field). Standardized across all kit workloads.
-
-- **Resources**: `cpu` and `memory` request = limit (Guaranteed QoS). Defaults 2 CPU / 72Gi.
-  Guaranteed reserves the full request — 72Gi + 48Gi fits; two large models cannot co-schedule on 117.5Gi, so the node
-  fits one large model at a time (second pod stays Pending until the first is deleted).
+- **Resources**: `cpu` and `memory` request = limit (Guaranteed QoS). Defaults 2 CPU / 56Gi.
+  Guaranteed reserves the full request — 56Gi fits with one other 56Gi workload on 117.5Gi.
 - `hf_token` (optional) — currently ungated; covers private repos and future gating.
-- `storage_class` (required) / `storage_size` (default 100Gi) — model cache volume (BF16 weights ~60GB).
+- `storage_class` (required) / `storage_size` (default 100Gi) — model cache volume.
   `local-path` recommended.
 
 ## Prerequisites
 
 - `nvidia-gpu-operator` plugin from the official catalog, driver ≥ 580.
-- First launch downloads the BF16 checkpoint (~60GB) into the model volume.
+- First launch downloads the checkpoint into the model volume.
 - **Hardware validation pending** — config transcribed from Qwen/vLLM published guidance.

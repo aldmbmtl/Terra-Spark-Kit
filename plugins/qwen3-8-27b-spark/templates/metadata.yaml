@@ -8,7 +8,7 @@ metadata:
     juno-innovations.com/workload: "Server"
 data:
   chart: "{{ .Release.Name }}-scripts-configmap"
-  description: "Qwen/Qwen3.8-27B — pre-configured plain-vLLM server with 128K context"
+  description: "Qwen/Qwen3.8-27B — pre-configured FP8-vLLM server with 256K context"
   fields: |
     - name: icon
       description: "Icon shown for the workload"
@@ -26,15 +26,15 @@ data:
       required: false
       default: "2"
     - name: memory
-      description: "Memory request = limit (Guaranteed QoS), footprint-derived (~80Gi: ~51GB weights + ~16GB KV at 128K ctx, 4 seqs + overhead)."
+      description: "Memory request = limit (Guaranteed QoS), footprint-derived (~50Gi: ~29GB fp8+overhead + ~15GB KV at 256K ctx + 2.4GB activation)."
       type: string
       required: false
-      default: "80Gi"
+      default: "56Gi"
     - name: gpu_memory_utilization
-      description: "Fraction of device memory for weights + KV cache: ~70GB ceiling contains the ~67GB CUDA footprint (51GB bf16 + ~16GB KV pool at 128K ctx, 4 seqs)."
+      description: "Fraction of device memory for weights + KV cache: ~47GB ceiling contains the ~32GB CUDA footprint (29GB fp8+overhead + ~15GB KV pool at 256K ctx)."
       type: string
       required: false
-      default: "0.55"
+      default: "0.40"
     - name: hf_token
       description: "HuggingFace access token (used for private repos and future gating; optional for this ungated model)."
       type: string

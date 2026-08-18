@@ -49,6 +49,8 @@ spec:
             - {{ .Values.max_model_len | default 131072 | quote }}
             - --max-num-seqs
             - {{ .Values.max_num_seqs | default 4 | quote }}
+            - --quantization
+            - fp8
           ports:
             - name: http
               containerPort: 8000

@@ -1,7 +1,7 @@
 resource_id: spark-llm
 name: Spark LLM Stack
 icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/bundles/assets/spark-icon.png
-description: Local LLM stack for the DGX Spark — five pre-configured plain-vLLM model workloads (Nemotron 3.5 Lightning, Nemotron 3 Nano, Qwen3-30B-A3B, Qwen3.6-35B-A3B, Nemotron Super 49B), each with tuned unified-memory budgets and prefix-stripping ingress.
+description: Local LLM stack for the DGX Spark — six pre-configured plain-vLLM model workloads (Nemotron 3.5 Lightning, Nemotron 3 Nano, Qwen3-30B-A3B, Qwen3.6-35B-A3B, Nemotron Super 49B, Qwen3.8-27B), each with tuned unified-memory budgets and prefix-stripping ingress.
 category: Bundle
 tags:
   - spark
@@ -20,3 +20,5 @@ plugins:
     name: qwen3-6-spark
   - plugin: Nemotron Super 49B (Spark)
     name: nemotron-super-49b-spark
+  - plugin: Qwen3.8-27B (Spark)
+    name: qwen3-8-27b-spark
