@@ -26,12 +26,12 @@ data:
       required: false
       default: "2"
     - name: memory
-      description: "Memory request = limit (Guaranteed QoS), footprint-derived (~64Gi: ~30GB weights + ~22GB KV at 262K ctx, 4 seqs + overhead)."
+      description: "Memory request = limit (Guaranteed QoS), footprint-derived (~80Gi: ~51GB weights + ~16GB KV at 128K ctx, 4 seqs + overhead)."
       type: string
       required: false
-      default: "64Gi"
+      default: "80Gi"
     - name: gpu_memory_utilization
-      description: "Fraction of device memory for weights + KV cache: ~70GB ceiling contains the ~61GB CUDA footprint (35GB FP8 + 21.5GB KV pool at 131K ctx, 4 seqs)."
+      description: "Fraction of device memory for weights + KV cache: ~70GB ceiling contains the ~67GB CUDA footprint (51GB bf16 + ~16GB KV pool at 128K ctx, 4 seqs)."
       type: string
       required: false
       default: "0.55"

@@ -1,5 +1,5 @@
 # Kuiper-injected standard values — do not remove
-# Per-model defaults (2 CPU / 72Gi). At launch the metadata field default
+# Per-model defaults (2 CPU / 80Gi). At launch the metadata field default
 # overrides Kuiper's injected standard value (verified platform behavior).
 name: qwen3-8-27b-spark
 icon: "https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/qwen3-8-27b-spark/assets/logo.png"
@@ -7,7 +7,7 @@ served_model_name: "model"
 user:
 group:
 cpu: "2"
-memory: "64Gi"
+memory: "80Gi"
 cpuLimit: null
 memoryLimit: null
 idx: 0
@@ -29,7 +29,7 @@ _kuiper:
 image: "vllm/vllm-openai:latest"
 model: "Qwen/Qwen3.8-27B"
 runtimeClassName: "nvidia"
-max_model_len: 262144
+max_model_len: 131072
 max_num_seqs: 4
 
 # --- Exposed fields (match metadata.yaml) ---
