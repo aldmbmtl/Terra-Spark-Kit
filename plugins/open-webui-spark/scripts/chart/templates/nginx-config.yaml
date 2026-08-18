@@ -25,6 +25,14 @@ data:
       proxy_read_timeout 600s;
       proxy_send_timeout 600s;
 
+      # Catch-all for bare requests (no /plugin/<name>/ prefix). The Kuiper
+      # viewer's Connections.svelte probes the workload service directly
+      # (in-cluster, port 8080) without the prefix — bare requests 404'd
+      # because every location required /plugin/<name>/...
+      location / {
+        proxy_pass http://127.0.0.1:{{ .Values.app_port }};
+      }
+
       # socket.io — WebSocket upgrade, unbuffered. ^~ shields it from any
       # future regex locations. The plain rewrite strip is safe here: Open
       # WebUI URLs carry no %2F/embedded-filename paths (UUID ids, not
