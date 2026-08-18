@@ -104,6 +104,8 @@ data:
         # the ${p}/api construction (no trailing slash — e.g. the chat
         # completions API base) is missed by the }/api/ needle above
         sub_filter '}/api' '}/plugin/{{ .Values.name }}/api';
+        sub_filter '}/ollama' '}/plugin/{{ .Values.name }}/ollama';
+        sub_filter '}/openai' '}/plugin/{{ .Values.name }}/openai';
         sub_filter '}/static/' '}/plugin/{{ .Values.name }}/static/';
         sub_filter '}/ws/' '}/plugin/{{ .Values.name }}/ws/';
         sub_filter 'url(/static/' 'url(/plugin/{{ .Values.name }}/static/';
