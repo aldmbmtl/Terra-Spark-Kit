@@ -111,7 +111,7 @@ resource overhead.
   (`kubectl get sts <name>` requests == "2"/"48Gi", "2"/"72Gi" or "2"/"88Gi" per model) catches it; fallback =
   rename the fields.
 - **No per-model engine toggle.** One archetype per plugin (locked decision — see git history).
-- **Model ingresses are PUBLIC by design** (no Hubble auth; user decision). The five `-spark`
+- **Model ingresses are PUBLIC by design** (no Hubble auth; user decision). The seven `-spark`
   model workload ingresses ship hardcoded public — no auth-url annotation. The generic
   `template/workload` scaffold keeps its `publicAccess` toggle for non-model workloads. Host +
   `/plugin/<name>` prefix + 600s timeouts still required (Rule 6).
