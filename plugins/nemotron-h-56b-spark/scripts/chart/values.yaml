@@ -1,0 +1,46 @@
+# Kuiper-injected standard values — do not remove
+# Per-model defaults (2 CPU / 72Gi). At launch the metadata field default
+# overrides Kuiper's injected standard value (verified platform behavior).
+name: nemotron-h-56b-spark
+icon: "https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/nemotron-h-56b-spark/assets/logo.png"
+served_model_name: "model"
+user:
+group:
+cpu: "2"
+memory: "72Gi"
+cpuLimit: null
+memoryLimit: null
+idx: 0
+guid: 0
+puid: 0
+host:
+pullSecret:
+session:
+volumeMounts: []
+volumes: []
+env:
+  - name: JUNO
+    value: "true"
+selector:
+plugins: []
+_kuiper:
+
+# --- Nemotron-H-56B-Base-8K pre-configuration (locked) ---
+image: "vllm/vllm-openai:latest"
+# BF16 checkpoint (104.9Gi on disk) served with LOAD-TIME dynamic FP8 quant
+# (--quantization fp8 halves the in-RAM weight footprint to ~52.5Gi). Quality-safe:
+# Nemotron-H-56B-Base was itself pre-trained with an FP8 recipe (arxiv 2504.03624).
+# No FP8/INT4 checkpoint exists on HF for this model (verified author-agnostic search).
+# Hybrid Mamba-2 + 10 attention layers (NemotronHForCausalLM, model_type nemotron_h) —
+# requires --mamba-cache-mode align + --enable-chunked-prefill (see statefulset.yaml).
+# Base model: completion-only, no chat template.
+model: "nvidia/Nemotron-H-56B-Base-8K"
+runtimeClassName: "nvidia"
+max_model_len: 8192
+max_num_seqs: 4
+
+# --- Exposed fields (match metadata.yaml) ---
+gpu_memory_utilization: "0.55"
+hf_token: ""
+storage_class: ""
+storage_size: 120

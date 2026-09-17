@@ -94,6 +94,7 @@ resource overhead.
   | qwen3-spark | 131072 | 2 | ~60GB | ~13GB | ~82GB | 88Gi | 0.70 (90GB) |
   | qwen3-6-spark | 131072 | 4 | ~35GB | ~21.5GB | ~64GB | 72Gi | 0.55 (70GB) |
   | nemotron-super-49b-spark | 32768 | 4 | ~50GB | ~21.5GB | ~79GB | 88Gi | 0.65 (83GB) |
+  | nemotron-h-56b-spark | 8192 | 4 | ~52.5GB (dynamic FP8) | ~1GB | ~66GB | 72Gi | 0.55 (70GB) |
 
   Container OOM (restart) instead of host OOM (node crash). 64K ctx × 4 seqs for super-49b would be
   ~101GB — does not fit; qwen3 at 4 seqs (~94GB) also exceeds the clean budget, hence seqs=2.
@@ -111,7 +112,14 @@ resource overhead.
   (`kubectl get sts <name>` requests == "2"/"48Gi", "2"/"72Gi" or "2"/"88Gi" per model) catches it; fallback =
   rename the fields.
 - **No per-model engine toggle.** One archetype per plugin (locked decision — see git history).
-- **Model ingresses are PUBLIC by design** (no Hubble auth; user decision). The seven `-spark`
+- **nemotron-h-56b-spark is the Mamba-2 hybrid + dynamic-FP8 exception**: `NemotronHForCausalLM`
+  (Mamba-2 + 10 attention layers) requires `--mamba-cache-mode align` + `--enable-chunked-prefill`;
+  the bf16 checkpoint (104.9Gi on disk) is FP8-quantized at load (`--quantization fp8`, ~52.5Gi in
+  RAM) because no FP8/INT4 checkpoint exists on HF and bf16 cannot fit — quality-safe, the model was
+  FP8-pretrained (arXiv 2504.03624). Base/completion model (no chat template), research-only license
+  (flagged in README). First boot is slow: 104.9Gi download + 56B-param load-time quant → startup
+  probe threshold 300 (50 min).
+- **Model ingresses are PUBLIC by design** (no Hubble auth; user decision). The eight `-spark`
   model workload ingresses ship hardcoded public — no auth-url annotation. The generic
   `template/workload` scaffold keeps its `publicAccess` toggle for non-model workloads. Host +
   `/plugin/<name>` prefix + 600s timeouts still required (Rule 6).
@@ -278,8 +286,8 @@ nemotron-nano-spark, qwen3-spark, nemotron-super-49b-spark, qwen3-6-spark). Foll
 
 - `bundles/spark-llm.yaml`: add the entry; update the description count (n workloads).
 - Root `README.md`: add the catalog row; sweep "four/five model workloads" count; update the
-  per-model budget enumeration line (48Gi Lightning/Nano, 72Gi Qwen3.6, 88Gi Qwen3/Super-49B;
-  util 0.40–0.70).
+  per-model budget enumeration line (48Gi Lightning/Nano, 56Gi Qwen3.8-27B, 72Gi Qwen3.6/Nemotron-H-56B,
+  88Gi Qwen3/Super-49B; util 0.40–0.70).
 - `AGENTS.md`: add the row to the memory-rules table; extend the Kuiper-merge validation check
   string (`requests == "2"/"48Gi", "2"/"72Gi" or "2"/"88Gi"`); update "The N -spark model
   workload ingresses" count.

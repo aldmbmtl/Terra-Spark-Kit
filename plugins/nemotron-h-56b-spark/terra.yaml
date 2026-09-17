@@ -1,0 +1,13 @@
+resource_id: nemotron-h-56b-spark
+name: Nemotron-H 56B (Spark)
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/nemotron-h-56b-spark/assets/logo.png
+description: "Pre-configured Nemotron-H-56B-Base-8K on plain vLLM — bf16 checkpoint quantized to FP8 at load time (--quantization fp8; quality-safe, the model was FP8-pretrained). Hybrid Mamba-2 + 10 attention layers, 8K context, base/completion model. Research-only license. HF repo id: nvidia/Nemotron-H-56B-Base-8K."
+category: AI
+tags:
+  - llm
+  - inference
+  - nemotron
+  - nemotron-h
+  - spark
+  - cluster-level
+fields: []
