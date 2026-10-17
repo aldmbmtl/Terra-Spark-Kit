@@ -37,7 +37,7 @@ Ungated — no token needed (still shipped per kit convention).
 | util ceiling | 0.55 → ~70GB (below the 72Gi cgroup, ~7GB margin) |
 | Storage | 120Gi default — bf16 cache is 104.9Gi on disk (quant happens in-RAM at load) |
 
-Ingress: `/plugin/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
 before proxying to vLLM (`:8000`), 600s timeouts.
 
 ## Fields

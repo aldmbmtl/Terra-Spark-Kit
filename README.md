@@ -6,6 +6,7 @@ like the NVIDIA DGX Spark. Each plugin is a Helm chart that Terra installs into 
 This repository is a Terra plugin **Source** — add it in the Terra UI like any other source, alongside
 or instead of the [official plugin catalog](https://github.com/juno-fx/Terra-Official-Plugins).
 Plugins use distinct `-spark` resource IDs so they coexist cleanly with their official counterparts.
+The one deliberate exception is the per-model `-unify` companion set (see [AGENTS.md](AGENTS.md)).
 
 ---
 
@@ -24,17 +25,32 @@ Plugins use distinct `-spark` resource IDs so they coexist cleanly with their of
 | txt2kg (Spark) | Workload Template | AI | Text-to-knowledge-graph (Next.js + ArangoDB) backed by any kit model workload — CPU-only companion | [README](plugins/txt2kg-spark/README.md) |
 | Qwen3.8-27B (Spark) | Workload Template | AI | Qwen3.8-27B FP8 on plain vLLM, 256K context, 56Gi | [README](plugins/qwen3-8-27b-spark/README.md) |
 | Nemotron-H 56B Base (Spark) | Workload Template | AI | 56B hybrid Mamba-2 + 10 attention layers (Nemotron-H) on plain vLLM with load-time dynamic FP8, 8K context — research-only license | [README](plugins/nemotron-h-56b-spark/README.md) |
+| Nemotron 3.5 Lightning Unify | Workload Template (no pod) | AI | Service + optional Ingress/NodePort/LoadBalancer front-end for the running `nemotron-spark` model | [README](plugins/nemotron-unify/README.md) |
+| Nemotron Coding Unify | Workload Template (no pod) | AI | Service + optional Ingress/NodePort/LoadBalancer front-end for the running `nemotron-coding-spark` model | [README](plugins/nemotron-coding-unify/README.md) |
+| Nemotron 3 Nano Unify | Workload Template (no pod) | AI | Service + optional Ingress/NodePort/LoadBalancer front-end for the running `nemotron-nano-spark` model | [README](plugins/nemotron-nano-unify/README.md) |
+| Qwen3 30B-A3B Unify | Workload Template (no pod) | AI | Service + optional Ingress/NodePort/LoadBalancer front-end for the running `qwen3-spark` model | [README](plugins/qwen3-unify/README.md) |
+| Qwen3.6 35B-A3B Unify | Workload Template (no pod) | AI | Service + optional Ingress/NodePort/LoadBalancer front-end for the running `qwen3-6-spark` model | [README](plugins/qwen3-6-unify/README.md) |
+| Nemotron Super 49B Unify | Workload Template (no pod) | AI | Service + optional Ingress/NodePort/LoadBalancer front-end for the running `nemotron-super-49b-spark` model | [README](plugins/nemotron-super-49b-unify/README.md) |
+| Qwen3.8-27B Unify | Workload Template (no pod) | AI | Service + optional Ingress/NodePort/LoadBalancer front-end for the running `qwen3-8-27b-spark` model | [README](plugins/qwen3-8-27b-unify/README.md) |
+| Nemotron-H 56B Unify | Workload Template (no pod) | AI | Service + optional Ingress/NodePort/LoadBalancer front-end for the running `nemotron-h-56b-spark` model | [README](plugins/nemotron-h-56b-unify/README.md) |
 
 Bundles: [Spark LLM Stack](bundles/spark-llm.yaml) — all **eight** model workloads in one install ·
 [Spark AI Lab](bundles/spark-ai-lab.yaml) — Open WebUI + ComfyUI + txt2kg companions.
+The eight `-unify` front-ends are deliberately **not** bundled: launch one manually after its model.
 
-Every workload is a plain-vLLM StatefulSet with a footprint-derived unified-memory budget
+Every **model** workload is a plain-vLLM StatefulSet with a footprint-derived unified-memory budget
 (memory request = limit per model: 48Gi Lightning/Nano, 56Gi Qwen3.8-27B, 72Gi Qwen3.6/Nemotron-H-56B, 88Gi Qwen3/Super-49B; util 0.40–0.70),
-served under the platform `/plugin/<name>` prefix via an in-pod nginx prefix-stripping sidecar.
+served under the platform `/plugin/<name>` prefix via an in-pod nginx prefix-stripping sidecar. Each
+model sidecar also carries a generic `/plugin/unify/` route, which the per-model `-unify` companions
+front (Service + optional Ingress — no pod of their own).
 
-Three **non-model companion workloads** (Open WebUI, ComfyUI, txt2kg) follow the same ingress rule.
-Model workloads are GPU-exclusive (one at a time); the CPU-only companions co-schedule alongside
-any one model (48Gi+4Gi and 88Gi+4Gi both fit the 117.5Gi allocatable node).
+Eleven **non-model companion workloads** (Open WebUI, ComfyUI, txt2kg and the eight `-unify`
+front-ends) follow the same ingress rule; the `-unify` front-ends add the sanctioned extra path
+segment (`/plugin/unify/<name>`) and delegate their prefix strip to the target model pod's sidecar.
+Launch a companion in the same project as its model, with the model launched under its plugin id —
+otherwise the companion's label selector matches nothing. Model workloads are GPU-exclusive (one at
+a time); the CPU-only companions co-schedule alongside any one model (48Gi+4Gi and 88Gi+4Gi both fit
+the 117.5Gi allocatable node).
 
 For the full mapping of the NVIDIA DGX Spark playbook catalog to this kit (66 playbooks scoped,
 tiers, disqualifications), see [docs/playbook-scoping.md](docs/playbook-scoping.md).

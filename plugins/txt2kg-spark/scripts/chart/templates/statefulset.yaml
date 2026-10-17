@@ -28,7 +28,7 @@ spec:
             - name: APP_PORT
               value: {{ .Values.app_port | quote }}
             - name: APP_BASE_PATH
-              value: /plugin/{{ .Values.name }}
+              value: /{{ .Release.Namespace }}/{{ .Values.name }}
             - name: BUILD_VER
               value: "5"
             - name: VLLM_BASE_URL
@@ -51,21 +51,21 @@ spec:
               protocol: TCP
           startupProbe:
             httpGet:
-              path: /plugin/{{ .Values.name }}
+              path: /{{ .Release.Namespace }}/{{ .Values.name }}
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 120
           readinessProbe:
             httpGet:
-              path: /plugin/{{ .Values.name }}
+              path: /{{ .Release.Namespace }}/{{ .Values.name }}
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 10
           livenessProbe:
             httpGet:
-              path: /plugin/{{ .Values.name }}
+              path: /{{ .Release.Namespace }}/{{ .Values.name }}
               port: http
             periodSeconds: 10
             failureThreshold: 3

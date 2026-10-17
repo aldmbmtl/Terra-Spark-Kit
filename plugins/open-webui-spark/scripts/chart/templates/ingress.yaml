@@ -16,7 +16,7 @@ spec:
     - host: {{ .Values.host }}
       http:
         paths:
-          - path: /plugin/{{ .Values.name }}
+          - path: /{{ .Release.Namespace }}/{{ .Values.name }}
             pathType: Prefix
             backend:
               service:

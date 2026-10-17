@@ -1,0 +1,16 @@
+{{- $svcType := "ClusterIP" }}
+{{- if eq .Values.expose "NodePort" }}{{ $svcType = "NodePort" }}{{- end }}
+{{- if eq .Values.expose "LoadBalancer" }}{{ $svcType = "LoadBalancer" }}{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}
+spec:
+  type: {{ $svcType }}
+  selector:
+    juno-innovations.com/model: {{ .Values.model | default "" | lower | replace "/" "-" | replace "." "-" | quote }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: nginx
+      protocol: TCP

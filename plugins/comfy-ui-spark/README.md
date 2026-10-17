@@ -25,7 +25,7 @@ The image's entrypoint provisions the venv on first boot, then runs ComfyUI — 
 | GPU | 1 × `nvidia.com/gpu`, runtime class `nvidia` |
 | Memory | **Request** 48Gi default (SDXL/Flux-class; raise for video-class). **Limits are EMPTY by default — no CPU/memory limit** (platform contract: `cpuLimit`/`memoryLimit` at launch, empty = uncapped). Burstable QoS — a runaway render can push the node toward memory pressure (~117.5Gi allocatable); cap via `memoryLimit` if that bites |
 
-Ingress: `/plugin/<name>` prefix; `publicAccess` default **false** (no app-level auth →
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix; `publicAccess` default **false** (no app-level auth →
 Hubble in front).
 
 ## Prefix routing — native subpath, no content rewriting
@@ -33,18 +33,18 @@ Hubble in front).
 ComfyUI's frontend has served under a path prefix natively since ComfyUI_frontend 1.33
 (Dec 2025 — [PR #7115](https://github.com/Comfy-Org/ComfyUI_frontend/pull/7115), extended by
 [PR #12833](https://github.com/Comfy-Org/ComfyUI_frontend/pull/12833)): it derives its API base
-from `window.location.pathname` and emits prefixed URLs itself (`/plugin/<name>/api/*`,
-`/plugin/<name>/ws`, `/plugin/<name>/internal/*`). The sidecar therefore only strips the prefix
-back to root (`rewrite ^/plugin/<name>(/|$)(.*)$ /$2 break;` + `proxy_pass
+from `window.location.pathname` and emits prefixed URLs itself (`/{{ .Release.Namespace }}/<name>/api/*`,
+`/{{ .Release.Namespace }}/<name>/ws`, `/{{ .Release.Namespace }}/<name>/internal/*`). The sidecar therefore only strips the prefix
+back to root (`rewrite ^/{{ .Release.Namespace }}/<name>(/|$)(.*)$ /$2 break;` + `proxy_pass
 http://127.0.0.1:8188`) — **no `sub_filter` content rewriting, no source patches**. The mmartial
 image clones latest ComfyUI at first boot, so the frontend always exceeds the 1.33 floor.
 
 Two sidecar details matter:
 
-- `location = /plugin/<name>` returns **301 to the trailing-slash form** — without it the
+- `location = /{{ .Release.Namespace }}/<name>` returns **301 to the trailing-slash form** — without it the
   frontend computes `api_base = "/plugin"` and nothing resolves. The sidecar sets
   `absolute_redirect off` so the 301 Location is RELATIVE: nginx's default (on) would emit an
-  absolute `http://host:8080/plugin/<name>/` built from the sidecar's own socket — the browser
+  absolute `http://host:8080/{{ .Release.Namespace }}/<name>/` built from the sidecar's own socket — the browser
   follows it to the unfirewalled service port and times out.
 - The classic `rewrite ... break` keeps query strings proper — workflow saves (`overwrite`,
   `full_info` params) work untouched. Community workarounds that embed the query string into the

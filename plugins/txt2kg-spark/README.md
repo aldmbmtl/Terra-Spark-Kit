@@ -20,7 +20,7 @@ CPU-only: this plugin co-schedules with one model workload.
 ## Prefix strategy (pass-through, not strip)
 
 The Next.js app **serves natively under the prefix**: the bootstrap bakes
-`basePath: /plugin/<name>` into `next.config.mjs` and prefixes all client-side
+`basePath: /{{ .Release.Namespace }}/<name>` into `next.config.mjs` and prefixes all client-side
 `fetch('/api/...')` calls at build time (the rebuild marker `/workspace/.basepath` re-runs the
 build if the prefix ever changes). The sidecar therefore passes URIs through unmodified — unlike
 the model plugins / root-relative SPAs, where stripping is required.
@@ -36,13 +36,13 @@ the model plugins / root-relative SPAs, where stripping is required.
 | GPU | none — CPU-only companion |
 | Resources | app 2 CPU / 8Gi, arangodb 500m / 2Gi, nginx 100m / 128Mi — all req = lim (pod Guaranteed) |
 
-Ingress: `/plugin/<name>` prefix; `publicAccess` default **false** (no app auth, `ARANGO_NO_AUTH=1`
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix; `publicAccess` default **false** (no app auth, `ARANGO_NO_AUTH=1`
 → Hubble in front).
 
 ## Fields
 
 - `llm_url` (**required**) — OpenAI-compatible base URL of a launched kit model workload:
-  `http://<model-workload-name>:8080/plugin/<model-workload-name>/v1`. Launch a model first (playbook pairing:
+  `http://<model-workload-name>:8080/{{ .Release.Namespace }}/<model-workload-name>/v1`. Launch a model first (playbook pairing:
   `nemotron-super-49b-spark`).
 - `llm_model` (default `model`) — must match the model workload's `served_model_name`.
 - `cpu` / `memory` — Guaranteed QoS defaults 2 CPU / 8Gi (app container; arangodb + sidecar fixed

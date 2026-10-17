@@ -16,7 +16,7 @@ general quality than the 30B MoE models at higher memory cost.
 | GPU | 1 × `nvidia.com/gpu`, runtime class `nvidia` |
 | Memory limit | 88Gi (container OOM, never host) — footprint ~79GB (weights + KV + overhead) |
 
-Ingress: `/plugin/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
 before proxying to vLLM (`:8000`).
 
 > **Confidence note**: this configuration is **assembled** from standard vLLM flags — NVIDIA has not

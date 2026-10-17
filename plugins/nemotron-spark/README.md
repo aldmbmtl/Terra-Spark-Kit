@@ -22,7 +22,7 @@ version — it is the one model in the kit whose config is version-locked.
 | GPU | 1 × `nvidia.com/gpu`, runtime class `nvidia` |
 | Memory limit | 48Gi (container OOM, never host) — footprint ~39GB (weights + KV + overhead) |
 
-Ingress: `/plugin/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
 before proxying to vLLM (`:8000`).
 
 Config source: [vLLM blog — Nemotron 3.5 Lightning Day-0](https://vllm.ai/blog/2026-08-10-nemotron-3-5-lightning-vllm),

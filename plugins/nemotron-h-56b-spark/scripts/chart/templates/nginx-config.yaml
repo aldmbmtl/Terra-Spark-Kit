@@ -6,8 +6,23 @@ data:
   default.conf: |
     server {
       listen 8080;
-      location /plugin/{{ .Values.name }} {
-        rewrite ^/plugin/{{ .Values.name }}(/|$)(.*)$ /$2 break;
+      location /{{ .Release.Namespace }}/{{ .Values.name }} {
+        rewrite ^/{{ .Release.Namespace }}/{{ .Values.name }}(/|$)(.*)$ /$2 break;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 600s;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+      }
+
+      # Generic unify front-end route: /{{ .Release.Namespace }}/<any>/... → vLLM root.
+      # Serves the per-model *-unify companion plugins (they own the Service + Ingress;
+      # this sidecar owns the prefix strip). Unify companions are launched per model.
+      location ~ ^/{{ .Release.Namespace }}/ {
+        rewrite ^/{{ .Release.Namespace }}/[^/]+(/|$)(.*)$ /$2 break;
         proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

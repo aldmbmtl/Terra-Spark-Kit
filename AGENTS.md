@@ -23,6 +23,10 @@ resource overhead.
 ## Naming Convention
 
 - Every plugin uses a distinct `-spark` resource ID (e.g. `ollama-spark`, `vllm-spark`)
+- **Exception**: the per-model `-unify` companion plugins carry no `-spark` in the ID
+  (`nemotron-unify`, `qwen3-6-unify`, …) — deliberate, so the front-end reads as a companion of
+  `<model>-spark` rather than another model. They are still distinct IDs; nothing else may skip the
+  suffix.
 - This prevents collisions with the official catalog when both Sources are enabled in Terra
 - Never reuse an official plugin's `resource_id`
 
@@ -40,6 +44,7 @@ resource overhead.
 | Namespaced | no `cluster-level` tag | user's project namespace |
 | Cluster-level | `cluster-level` tag | `argocd` namespace |
 | Workload template | `cluster-level` tag + `templates/metadata.yaml` with `kuiper.juno-innovations.com/chart` label + `scripts/chart/` | `argocd` namespace |
+| Workload template, no pod | as above, but `scripts/chart/templates/` renders only Service/Ingress — no StatefulSet (e.g. the 8 `-unify` companions) | `argocd` namespace |
 
 ## Critical Rules
 
@@ -57,10 +62,17 @@ resource overhead.
    `host: {{ .Values.host }}` with path `/plugin/<name>` (pathType Prefix, name `<name>-ingress`),
    plus `nginx.ingress.kubernetes.io/proxy-connect/read/send-timeout: "600"` (long LLM generations
    exceed the 60s nginx default). This mirrors the platform convention (`/vllm/<name>`,
-   `/hermes/<name>`). If a workload's backend cannot serve requests under the prefixed path, ship an
-   **nginx sidecar container** in the workload pod that strips the prefix
-   (`rewrite ^/plugin/<name>(/|$)(.*) → /$2`, `proxy_pass` to `localhost:<app-port>`) — prefix
-   support is never optional. The scaffold enforces this; do not regress it.
+   `/hermes/<name>`). The one sanctioned variation is the per-model **`-unify` companion** shape,
+   which uses `/plugin/unify/<name>` — an extra literal path segment (upstream "Ingress Path
+   Convention" allows a segment after `/plugin/`); the segment is baked into the chart and is never
+   a user field. `pathType: Prefix`, the 600s timeouts and the `<name>-ingress` name still apply
+   literally, and no `rewrite-target` annotation is used. If a workload's backend cannot serve
+   requests under the prefixed path, ship an **nginx sidecar container** in the workload pod that
+   strips the prefix (`rewrite ^/plugin/<name>(/|$)(.*) → /$2`, `proxy_pass` to
+   `localhost:<app-port>`) — prefix support is never optional. The scaffold enforces this; do not
+   regress it. A **no-pod companion** (no pod of its own) satisfies this rule by *delegating* the
+   strip to the target workload pod's sidecar — which is why the 8 model sidecars carry the generic
+   `/plugin/unify/` location (see below).
 
 ## Field Types
 
@@ -225,6 +237,54 @@ resource overhead.
   No GB10 in CI. First real launches (nemotron-spark → nano → super-49b → qwen3, in that order)
   are the gate: node must stay Ready, worker Running & serving.
 
+## Unify Companion Plugins (`-unify`) — decision record
+
+Each of the 8 model workloads has a **no-pod companion** that fronts it: `nemotron-unify`,
+`nemotron-coding-unify`, `nemotron-nano-unify`, `qwen3-unify`, `qwen3-6-unify`,
+`nemotron-super-49b-unify`, `qwen3-8-27b-unify`, `nemotron-h-56b-unify`. The companion renders
+**only** a Service (+ optional Ingress): no StatefulSet, no PVC, no pod. Launch the model first,
+then the companion, to expose it as `Ingress`, `NodePort` or `LoadBalancer`.
+
+- **Hardcoded selector, no selector field**: `Service.spec.selector = app: <model-plugin-id>` (e.g.
+  `app: nemotron-spark`), baked into `scripts/chart/values.yaml` as `model_selector` — never exposed
+  at launch. The model MUST be launched under its plugin id **and** in the same project as the
+  companion, or the selector matches nothing → empty endpoints → 503 (stated in the plugin's
+  terra.yaml description, README, and here). The existing `juno-innovations.com/model` label is
+  deliberately NOT used: it is not unique (`nemotron-spark` and `nemotron-coding-spark` carry the
+  identical Lightning id).
+- **Fields**: `icon` · `exposure` (select `Ingress`|`NodePort`|`LoadBalancer`, default `Ingress`) ·
+  `service_port` (int, 8080) · `ingress_class` (k8sIngressClass, default `nginx`) · `node_port`
+  (int, 0 = auto; NodePort/LoadBalancer only, rendered only when > 0). Ports render as **unquoted
+  ints** via `| int` — never `| quote` (k8s rejects `port: "8080"`).
+  - `type: select` (with `options: [...]`) and `type: k8sIngressClass` are the kit's **first** uses
+    of these launch field types (models only use string/int). If the platform misrenders them at
+    first launch, fall back to `type: string` (dropping `options:`) for `exposure` and
+    `type: string` default `nginx` for `ingress_class` — the chart logic is unaffected, since
+    `service.yaml`/`ingress.yaml` only compare against the resolved values.
+- **Prefix strip is delegated, not duplicated**: the companion's Ingress passes
+  `/plugin/unify/<name>` through untouched (no `rewrite-target`); the **target model pod's nginx
+  sidecar** strips it with the generic `location ~ ^/plugin/unify/` block present in all 8 model
+  `nginx-config.yaml`. One block serves every companion. Existing per-name `location
+  /plugin/<model>` prefix locations are unaffected: nginx checks prefix locations first but the
+  regex location wins when it matches, and no model name prefixes `/plugin/unify/`.
+  - The merged alternative (one regex `^/plugin/[^/]+(/|$)` covering both routes) is **rejected** —
+    it would alter an already-validated model route.
+  - **Coupling**: changing that block = 8 file edits + 8 repackages. The 8 `nginx-config.yaml` files
+    are byte-identical (`md5sum` equal) — keep them that way.
+- **Deliberately not bundled**: README catalog rows only, no `bundles/` entries — companions are
+  launched individually after their model. This is a recorded deviation from the playbook's
+  mandatory bundle-entry step; do not "fix" it.
+- **NodePort/LoadBalancer clients use the full path**
+  (`<node-ip>:<nodePort>/plugin/unify/<name>/v1/...`): the strip lives in the pod, so a bare prefix
+  resolves to `/` and vLLM answers 404. LoadBalancer is untested (no LB controller in this cluster;
+  MetalLB out of scope) — NodePort is what the launch ladder proves.
+- **The sidecar ConfigMap does not hot-reload**: a model pod must be relaunched after the
+  `/plugin/unify/` route is added before any companion can serve.
+- **Generation**: `plugins/nemotron-unify` is the canonical dir; the other 7 are `cp -r` + sed
+  sweeps in this order — companion id → model plugin id → model display name (the display name is
+  consistently `<model display> Unify`, which is what makes the third sweep safe) — followed by a
+  cross-contamination grep (no companion may reference another's id or model id).
+
 ## Adding a New Model Plugin — Playbook
 
 This is the proven end-to-end process for adding a model to the kit (used for nemotron-spark,
@@ -272,7 +332,9 @@ nemotron-nano-spark, qwen3-spark, nemotron-super-49b-spark, qwen3-6-spark). Foll
    kv-cache fp8, prefix caching, tool/reasoning parsers per the model family, plus the probe trio
    (startup `/health` threshold 120, liveness `/health` threshold 3, readiness `/v1/models`
    threshold 10), nginx sidecar (:8080, 100m/128Mi), memory limit. Update the `| default`
-   fallbacks for max_model_len/max_num_seqs.
+   fallbacks for max_model_len/max_num_seqs. `scripts/chart/templates/nginx-config.yaml` arrives with
+   the clone and must keep **both** locations: the per-name strip and the generic `/plugin/unify/`
+   block that the model's `-unify` companion depends on.
 5. Metadata fields (metadata.yaml, defaults match values.yaml — Kuiper injects these at launch):
    `icon`, `served_model_name` ("model"), `cpu` ("2"), `memory` (footprint value + description),
    `gpu_memory_utilization` (ceiling value + description), `hf_token` (optional), `storage_class`
@@ -288,6 +350,9 @@ nemotron-nano-spark, qwen3-spark, nemotron-super-49b-spark, qwen3-6-spark). Foll
 - Root `README.md`: add the catalog row; sweep "four/five model workloads" count; update the
   per-model budget enumeration line (48Gi Lightning/Nano, 56Gi Qwen3.8-27B, 72Gi Qwen3.6/Nemotron-H-56B,
   88Gi Qwen3/Super-49B; util 0.40–0.70).
+- Optional but conventional: ship the model's `<model>-unify` companion (clone `plugins/nemotron-unify`,
+  sweep companion id / model id / model display name) + its README catalog row — see the
+  Unify Companion Plugins section.
 - `AGENTS.md`: add the row to the memory-rules table; extend the Kuiper-merge validation check
   string (`requests == "2"/"48Gi", "2"/"72Gi" or "2"/"88Gi"`); update "The N -spark model
   workload ingresses" count.

@@ -22,7 +22,7 @@ version — it is the one model in the kit whose config is version-locked.
 | GPU | 1 × `nvidia.com/gpu`, runtime class `nvidia` |
 | Memory limit | 48Gi (container OOM, never host) — footprint ~39GB (weights + KV + overhead) |
 
-Ingress: `/plugin/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
 before proxying to vLLM (`:8000`).
 
 Larger Context for Coding: This plugin provides 512K token context windows for code completions,

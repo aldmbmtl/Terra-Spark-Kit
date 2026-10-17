@@ -19,7 +19,7 @@ Unlike the playbook's bundled-Ollama image, this plugin uses the **frontend-only
 | Streaming | Sidecar: WebSocket upgrade headers + `proxy_buffering off` on `/ws/` and the SSE paths only — the default location is BUFFERED (sub_filter requires it) |
 | GPU | none — CPU-only companion |
 
-Ingress: `/plugin/<name>` prefix, `publicAccess` toggle (default **false** — app auth is DISABLED
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix, `publicAccess` toggle (default **false** — app auth is DISABLED
 (`WEBUI_AUTH=false`), Hubble at the ingress is the only gate).
 
 ## Prefix routing — sub_filter strategy
@@ -27,7 +27,7 @@ Ingress: `/plugin/<name>` prefix, `publicAccess` toggle (default **false** — a
 Open WebUI has **no native subpath support** upstream (PRs #23242/#15583 unmerged; issues
 #25796/#17257): the stock build emits root-absolute URLs (`/api/*`, `/auth`, `/_app/*`,
 `/static/*`, `/ws/*`). Unlike comfy-ui (native subpath frontend), the sidecar therefore
-**content-rewrites** the frontend's responses under `/plugin/<name>`:
+**content-rewrites** the frontend's responses under `/{{ .Release.Namespace }}/<name>`:
 
 - **Buffered default location** with `sub_filter` rules (quote variants `"/api/`, `'/api/`, `"/auth`,
   `"/_app/`, `"/static/`, `"/ws/`, `'/ws/`; the **`}/` family** for SvelteKit template-literal
@@ -36,11 +36,11 @@ Open WebUI has **no native subpath support** upstream (PRs #23242/#15583 unmerge
   `url(/static/` — html/js/css only, **never JSON** — rewriting JSON would corrupt stored chat
   content) + `Accept-Encoding ""` (sub_filter needs identity). **THE subpath fix**: the inline
   hydration script sets `__sveltekit_n2lct2 = { base: "" }` — rewritten to
-  `base: "/plugin/<name>"`, making the SvelteKit router resolve every route under the prefix
+  `base: "/{{ .Release.Namespace }}/<name>"`, making the SvelteKit router resolve every route under the prefix
   (empty base = the app's own 404 page)
 - `proxy_redirect` ×3 (`/auth`, `/oidc`, `/sso`) — sub_filter can't touch backend 302 Location
   headers
-- **Unbuffered** `^~ /plugin/<name>/ws/` (socket.io, upgrade headers) and the SSE regex location
+- **Unbuffered** `^~ /{{ .Release.Namespace }}/<name>/ws/` (socket.io, upgrade headers) and the SSE regex location
   (`/api/(v1/)?(chat/completions|retrieval/process)`) — the default is buffered because
   sub_filter requires it
 - `client_max_body_size 256m` (sidecar) + `proxy-body-size: 256m` (ingress) — uploads would
@@ -50,9 +50,9 @@ The plain `rewrite` strip is safe here: Open WebUI URLs carry no `%2F`/embedded-
 (UUID ids, not names) — the ComfyUI#9664 class doesn't apply. `:main` tag drift may change the
 frontend's path strings — if the UI shows 404s on uncovered absolute paths, add sub_filter rules
 (same iterate loop as the launch validation). **Do NOT add generic `/auth` needles** — they corrupt the baked SvelteKit route manifest (route
-id `"/auth"` becomes `/plugin/<name>/auth`, which the router can never match after stripping
+id `"/auth"` becomes `/{{ .Release.Namespace }}/<name>/auth`, which the router can never match after stripping
 base). ALL navigation is fixed by patching the compiled `get_base_uri` (`new URL(e,t)}function
-q()` → strip leading slash with an `indexOf("/plugin/")` guard for already-prefixed paths) —
+q()` → strip leading slash with an `indexOf("/{{ .Release.Namespace }}/")` guard for already-prefixed paths) —
 SvelteKit's goto resolves against `document.baseURI`, where root-absolute paths always override
 the document path; the patch makes them relative → prefixed. This supersedes the earlier
 `?redirect=` needles (they double-prefixed under the patch). Completes the `WEBUI_AUTH=false`
@@ -61,7 +61,7 @@ flow: guard → prefixed login page → signin auto-authenticates `admin@localho
 ## Fields
 
 - `llm_url` — OpenAI-compatible base URL of a **launched** kit model workload:
-  `http://<model-workload-name>:8080/plugin/<model-workload-name>/v1` (the model sidecar's rewrite strips `/plugin/<name>`; `/v1` reaches vLLM — a bare
+  `http://<model-workload-name>:8080/{{ .Release.Namespace }}/<model-workload-name>/v1` (the model sidecar's rewrite strips `/{{ .Release.Namespace }}/<name>`; `/v1` reaches vLLM — a bare
   unmodified). Launch a model first, enter its workload name. If empty, add a connection in the
   Open WebUI admin panel instead.
 - `llm_api_key` (optional, sensitive) — key the model endpoint requires; kit model workloads do
@@ -74,7 +74,7 @@ flow: guard → prefixed login page → signin auto-authenticates `admin@localho
 ## Usage
 
 1. Launch a model workload (e.g. `nemotron-nano-spark`), note its workload name.
-2. Launch this plugin; set `llm_url` to `http://<model-workload-name>:8080/plugin/<model-workload-name>/v1`.
+2. Launch this plugin; set `llm_url` to `http://<model-workload-name>:8080/{{ .Release.Namespace }}/<model-workload-name>/v1`.
 3. First boot: register the local admin account, then chat.
 
 ## Prerequisites

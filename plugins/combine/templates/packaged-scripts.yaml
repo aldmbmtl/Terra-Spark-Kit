@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-scripts-configmap
+data:
+  bootstrap.sh: |
+    #!/bin/bash
+    echo "Unpacking scripts..."
+    # decode base64 encoded scripts mount at /terra/scripts.base64
+    base64 -d /terra/scripts.base64 > /terra/scripts.tar.gz
+    
+    # extract scripts to /terra/scripts
+    tar -xzvf /terra/scripts.tar.gz -C /terra/
+    
+    # make scripts executable
+    chmod +x -v /terra/scripts/*.sh
+    
+    # start entrypoint.sh
+    cd /terra/scripts
+    pwd
+    ./entrypoint.sh
+  packaged_scripts.base64: "H4sIAAAAAAAAA+1YUW/bNhDus37FQd1Di82S7dhJIKAvC4aha5sFS9aXYWhp6WyzoUiVpJwYaYH9iP3C/ZIdSdmxnXhZgMTBMH0PFn0kT5Tu+H08mVzzypr02SOi2+32D4ZDd3XYvK60B3u9PrV7vT5dYPiYi1qgNpZpgGdaKftP4+7q/4/CNPHPp0zbR8qC+8e/v9fvtfHfBdbjf+R+kzkrxUPew0V2fzDYGv9Br7cR/0F/QPu/+5CL2Ib/efxZxd+jNlzJDGa9SLISM8hVOeISI54789TaymRpqtlFMuF2Wo9qg5q6LEqb0NiUiaIclVakZ6g165xWTJ933nCblozLtBL1hEtKseA1ZcYgZZxQE5VUchIVGJLQr+EoDIKxJv8dlAWMlQYGupaSywmUqkABF0qfC8UKeHGKesZzhG9BeQ9MwGs50WgMqBlun/kymi0eu5v0km701IF4Iqzvf4tlJZjFhz0P3J//6XrQ8v8usC3+PGyiB9GCO/i/R70b8d/fH7b8vxNcXXWAjwE/Q/KeiRpNgpeVMghxQ6MxfP0araqEROtIlBIkOT80CVcp6Qb9LbIF80YlWlYwy7IIICjK1dXSvzOQz06TYZGpMHcDm/9HgvTheHNS0/khd73wBQocs1pYiCVJy2VMls+1ss4vedK1QONcAnRgqoxdc+UMYZyDE7esaQNUzE7N9V8335kySJ2DX1AgM5i41ZmK5e526c0nW5kePJ7NK3qaE41jfrnWOWL5OUlctmYEMEHTNs3b3+WNgZXS9uZ0clCXI9QZHHYPu5ELvRNYmv/UWdjiqbCN/5sc3AX/dw/2b+H/fsv/u4AjgW/MLHccBdkriI8EvRHUr0888W+Xh2M6Tp8QzbhhxEhLH682u5Yks93XWzqQf88EkznqW/zd7F763Chfggw1NcG/kqGl/FhP0qt39rxqiPNzq3Rg00+1VCRcUs2YKzaMr358YbHmO5QaKyrlBEqoC6pHvoBG2mKkHXEaQ9yJVy3JwrIiZo7Kl2IWnsJpVrRC9IHOg4GSeYL2xJu9Ni4GamVVrmidZ0cnK3y/vv9nYf0P/AHgrvPfcLC3ef4fdoft/t8FnsObmleoKas/UaJjAfQ+ZMF0ASEZ4K8//oRCgVSWErWkojp6DseKMq8AbsgkC9Q0bTQHOyWDT6QMuAUlxTzU8QaYBCY0smLeub0eT2799BA/8reHOHLusmiiVU3HwLyq6Z69mJijVHru2j/y2Jnf8pK7HVUL0XSuWnhxmUE3mtS8cNequfqjJ/0T4hRzjdQ2dIZ1XBXNlKhLfKdqejkZ/PZ7YwhtlDO34Rfb/adfj3/2u9gHhBZldY1xdM1MzUP6uR/OfTiziKLU6XTu/T1FKDqSFi/dXPJwNsUFmy6Z0EW90HyGMsQc4aN38hHGHAUlAhLTJX5qcF7SFiMruROslvmUkoUZP9FxL6dZBYRHAE45JUOXo2ciLZeU34Eik77gpBW+r1kJeSyZJYfGZefUVSR0W1peWIjPzs81d9npkliqJSFTF/me8QIp8QJ/L17YD16TiuDDwAt/B1hIiafG8HaCeGXXhVK0VqRki9qkPVy3aNGiRYsWLVq0aNGiRYunx9+Z3T2iACgAAA=="

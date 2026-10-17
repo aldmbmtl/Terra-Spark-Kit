@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-terra-metadata
+  labels:
+    kuiper.juno-innovations.com/chart: "{{ .Release.Name }}-scripts-configmap"
+  annotations:
+    juno-innovations.com/workload: "Server"
+data:
+  chart: "{{ .Release.Name }}-scripts-configmap"
+  description: "Combine front-end for a running model workload (no pod) — Service + optional public Ingress, model id is required."
+  fields: |
+    - name: icon
+      description: "Icon shown for the workload"
+      type: string
+      required: false
+      default: "https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/combine/assets/logo.png"
+    - name: expose
+      description: "How to expose the model. Ingress = ClusterIP Service + public Ingress on /{{ .Release.Namespace }}/combine/<name> (no Ingress is created in the other two modes). NodePort = reachable at <node-ip>:<nodePort>. LoadBalancer = external IP from a load-balancer controller (untested — this cluster has no LB controller)."
+      type: select
+      options:
+        - Ingress
+        - NodePort
+        - LoadBalancer
+      required: false
+      default: "Ingress"
+    - name: ingress_class
+      description: "IngressClass for the unify Ingress (Ingress mode only)."
+      type: k8sIngressClass
+      required: false
+      default: "nginx"
+    - name: model
+      description: "Model plugin id to select (e.g. nemotron-spark, qwen3-6-spark). This field is REQUIRED — you must specify a model plugin id at launch time, otherwise the selector matches nothing and the Service will have no endpoints."
+      type: string
+      required: true

@@ -17,7 +17,7 @@ the 30B-A3B MoE activates only 3B parameters per token, making it very fast on t
 | GPU | 1 × `nvidia.com/gpu`, runtime class `nvidia` |
 | Memory limit | 72Gi (container OOM, never host) — footprint ~64GB (35GB FP8 + 21.5GB KV + overhead) |
 
-Ingress: `/plugin/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
 before proxying to vLLM (`:8000`).
 
 ## Fields

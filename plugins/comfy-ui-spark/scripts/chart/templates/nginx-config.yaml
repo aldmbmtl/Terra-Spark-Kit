@@ -23,13 +23,13 @@ data:
       # only strips the prefix — no content rewriting (sub_filter), no source
       # patches, no query-string tricks. The mmartial image clones latest
       # ComfyUI at first boot, so the frontend always exceeds the 1.33 floor.
-      # Exact-match 301: a bare /plugin/<name> (no trailing slash) would make
+      # Exact-match 301: a bare /{{ .Release.Namespace }}/<name> (no trailing slash) would make
       # the frontend compute api_base = "/plugin" — wrong. $is_args$args
       # preserves any query string.
-      location = /plugin/{{ .Values.name }} {
-        return 301 /plugin/{{ .Values.name }}/$is_args$args;
+      location = /{{ .Release.Namespace }}/{{ .Values.name }} {
+        return 301 /{{ .Release.Namespace }}/{{ .Values.name }}/$is_args$args;
       }
-      location /plugin/{{ .Values.name }} {
+      location /{{ .Release.Namespace }}/{{ .Values.name }} {
         # Strip via $request_uri (RAW, encoded) — nginx `rewrite` operates on
         # the percent-DECODED URI and would turn %2F into a real slash, which
         # breaks POST /api/userdata/{file} saves (workflows/x.json → 405,
@@ -38,7 +38,7 @@ data:
         # excluded from the capture ([^?]*) and re-appended via $is_args$args —
         # avoids the kaanlabs query-embedded-in-filename bug, so no ComfyUI
         # source patches are needed.
-        if ($request_uri ~* "^/plugin/{{ .Values.name }}/([^?]*)") {
+        if ($request_uri ~* "^/{{ .Release.Namespace }}/{{ .Values.name }}/([^?]*)") {
           set $comfy_path $1;
         }
         proxy_pass http://127.0.0.1:{{ .Values.app_port }}/$comfy_path$is_args$args;

@@ -19,7 +19,7 @@ quantization.
 | Memory limit | 56Gi (Guaranteed QoS, ~50Gi footprint) |
 | GPU util | 0.40 (~47GB CUDA ceiling) |
 
-Ingress: `/plugin/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
 before proxying to vLLM (`:8000`).
 
 ## Fields

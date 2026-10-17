@@ -1,0 +1,11 @@
+resource_id: combine
+name: Combine
+icon: https://raw.githubusercontent.com/aldmbmtl/Terra-Spark-Kit/main/plugins/combine/assets/logo.png
+description: 'Front-end for a running model workload (combine): one Service with a configurable model selector plus an optional public Ingress at /{{ .Release.Namespace }}/combine/<name>. Launch the model first, under its plugin id and in the same project, then launch this to expose it as Ingress, NodePort or LoadBalancer.'
+category: AI
+tags:
+  - llm
+  - inference
+  - combine
+  - cluster-level
+fields: []

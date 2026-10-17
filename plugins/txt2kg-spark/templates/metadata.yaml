@@ -26,7 +26,7 @@ data:
       required: false
       default: "8Gi"
     - name: llm_url
-      description: "REQUIRED. OpenAI-compatible base URL of a launched kit model workload, e.g. http://<model-workload-name>:8080/plugin/<model-workload-name>/v1 (the model sidecar's rewrite strips /plugin/<name>; /v1 reaches vLLM — a bare `/v1` path (no `/plugin/<name>` prefix) 404s). Launch a model first — nemotron-super-49b-spark is the playbook's default pairing."
+      description: "REQUIRED. OpenAI-compatible base URL of a launched kit model workload, e.g. http://<model-workload-name>:8080/{{ .Release.Namespace }}/<model-workload-name>/v1 (the model sidecar's rewrite strips /{{ .Release.Namespace }}/<name>; /v1 reaches vLLM — a bare `/v1` path (no `/{{ .Release.Namespace }}/<name>` prefix) 404s). Launch a model first — nemotron-super-49b-spark is the playbook's default pairing."
       type: string
       required: true
     - name: llm_model

@@ -16,7 +16,7 @@ Spark playbook (`build.nvidia.com/spark/nemotron`) and the vLLM blog guide for N
 | GPU | 1 × `nvidia.com/gpu`, runtime class `nvidia` |
 | Memory limit | 48Gi (container OOM, never host) — footprint ~38GB (weights + KV + overhead) |
 
-Ingress: `/plugin/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
+Ingress: `/{{ .Release.Namespace }}/<name>` prefix, routed through an in-pod **nginx sidecar** that strips the prefix
 before proxying to vLLM (`:8000`).
 
 ## Fields

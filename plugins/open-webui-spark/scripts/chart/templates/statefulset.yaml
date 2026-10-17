@@ -35,7 +35,7 @@ spec:
               value: "none"
             {{- end }}
             - name: WEBUI_URL
-              value: "https://{{ .Values.host }}/plugin/{{ .Values.name }}"
+              value: "https://{{ .Values.host }}/{{ .Release.Namespace }}/{{ .Values.name }}"
             # App-level auth disabled — Hubble at the ingress is the gate
             # (single-user DGX; also kills the /auth redirect flow under the
             # prefix, whose server-side redirect_url is JSON data that
