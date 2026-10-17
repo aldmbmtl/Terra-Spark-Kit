@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ .Values.model | lower | replace "/" "-" | replace "." "-" | quote }}
+  name: {{ .Values.name }}
   annotations:
     juno-innovations.com/workload: "Server"
 spec:
