@@ -14,7 +14,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.name }}
-        juno-innovations.com/model: {{ .Values.model | lower | replace "/" "-" | replace "." "-" | quote }}
+        juno-innovations.com/model: {{ .Values.model_label | quote }}
     spec:
       runtimeClassName: {{ .Values.runtimeClassName }}
       containers:
