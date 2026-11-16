@@ -1,5 +1,6 @@
-{{- /* use_hami may arrive as a bool or as the string "false" — compare as text. */}}
-{{- $hami := ne (toString .Values.use_hami) "false" }}
+{{- /* use_hami may arrive as a bool or as a string ("false", "False") — compare
+       as lower-cased text. */}}
+{{- $hami := ne (lower (toString .Values.use_hami)) "false" }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
