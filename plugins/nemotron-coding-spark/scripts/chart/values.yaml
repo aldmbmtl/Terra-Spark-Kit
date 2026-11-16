@@ -39,6 +39,15 @@ max_num_seqs: 1          # 1 concurrent sequence (KV pool identical: 524288 × 1
 
 # --- Exposed fields (match metadata.yaml) ---
 gpu_memory_utilization: "0.40"
+# true  = request the GPU through the device plugin (nvidia.com/gpu: 1); on a HAMI
+#         cluster HAMI then caps and accounts the pod.
+# false = bypass HAMI: no GPU resource request, pod labelled hami.io/webhook=ignore,
+#         GPU exposed by the nvidia runtime class. Whole device, nothing accounts it.
+use_hami: true
+# HAMI vGPU shares (optional, only used when use_hami is true). Empty = not requested: HAMI applies its own
+# defaults, and clusters without HAMI are unaffected.
+gpu_cores: ""
+gpu_mem: ""
 hf_token: ""
 storage_class: ""
 storage_size: 100

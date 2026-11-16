@@ -35,6 +35,19 @@ data:
       type: string
       required: false
       default: "0.40"
+    - name: use_hami
+      description: "true (default): request the GPU through the cluster device plugin — on a HAMI cluster HAMI caps the pod (32 GiB unless gpu_mem is set) and accounts it. false: bypass HAMI — the pod gets the whole GPU uncapped, gpu_cores/gpu_mem are ignored, and nothing tracks the usage, so avoiding oversubscription with other GPU workloads is up to you."
+      type: boolean
+      required: false
+      default: true
+    - name: gpu_cores
+      description: "HAMI only (optional): percent of GPU compute to claim, 1-100 (nvidia.com/gpucores). Leave empty unless the cluster runs HAMI — when empty HAMI may claim all 100, blocking other GPU workloads on the node."
+      type: string
+      required: false
+    - name: gpu_mem
+      description: "HAMI only (optional): GPU memory to claim in MiB (nvidia.com/gpumem), e.g. 32768. Leave empty unless the cluster runs HAMI. gpu_memory_utilization then applies to THIS amount, not the whole device — the model needs about 25 GiB of it."
+      type: string
+      required: false
     - name: hf_token
       description: "HuggingFace access token (NVIDIA models require license acceptance; also used for private repos)."
       type: string

@@ -1,3 +1,5 @@
+{{- /* use_hami may arrive as a bool or as the string "false" — compare as text. */}}
+{{- $hami := ne (toString .Values.use_hami) "false" }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -15,6 +17,10 @@ spec:
       labels:
         app: {{ .Values.name }}
         juno-innovations.com/model: {{ .Values.model_label | quote }}
+        {{- if not $hami }}
+        # HAMI bypass: its webhook skips pods carrying this label.
+        hami.io/webhook: ignore
+        {{- end }}
     spec:
       runtimeClassName: {{ .Values.runtimeClassName }}
       containers:
@@ -26,6 +32,14 @@ spec:
               value: FLASHINFER
             - name: HF_HOME
               value: /models
+            {{- if not $hami }}
+            # HAMI bypass: no nvidia.com/gpu request, so the nvidia runtime class
+            # exposes the GPU from these envs instead of a device-plugin allocation.
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: compute,utility
+            {{- end }}
             {{- if .Values.hf_token }}
             - name: HF_TOKEN
               valueFrom:
@@ -104,7 +118,19 @@ spec:
               memory: {{ .Values.memory | quote }}
             limits:
               cpu: {{ .Values.cpu | quote }}
+              {{- /* use_hami=false requests no GPU resource at all: HAMI is the device
+                     plugin behind nvidia.com/gpu, so any request would re-enter it. */}}
+              {{- if $hami }}
               nvidia.com/gpu: "1"
+              {{- /* HAMI vGPU shares — rendered only when set, so clusters without
+                     HAMI (which do not advertise these resources) still schedule. */}}
+              {{- if .Values.gpu_cores }}
+              nvidia.com/gpucores: {{ .Values.gpu_cores | quote }}
+              {{- end }}
+              {{- if .Values.gpu_mem }}
+              nvidia.com/gpumem: {{ .Values.gpu_mem | quote }}
+              {{- end }}
+              {{- end }}
               memory: {{ .Values.memory | quote }}
           volumeMounts:
             - name: models
