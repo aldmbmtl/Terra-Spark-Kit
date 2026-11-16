@@ -6,6 +6,11 @@ data:
   default.conf: |
     server {
       listen 8080;
+      # Close the client connection after every response (nginx sends
+      # `Connection: close`). Clients that reach this pod through a Service are
+      # balanced per TCP connection, so a kept-alive connection would pin them to
+      # one backend; a fresh connection per request re-balances every request.
+      keepalive_timeout 0;
       location /{{ .Release.Namespace }}/{{ .Values.name }} {
         rewrite ^/{{ .Release.Namespace }}/{{ .Values.name }}(/|$)(.*)$ /$2 break;
         proxy_pass http://127.0.0.1:8000;
